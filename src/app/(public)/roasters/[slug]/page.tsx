@@ -51,8 +51,8 @@ async function RoasterDetail({ params }: Pick<PageProps<"/roasters/[slug]">, "pa
           </p>
         ) : null}
       </div>
-      <section className="section" aria-labelledby="served">
-        <h2 id="served" className="t-title">
+      <section className="section" aria-labelledby={`served-${roaster.slug}`}>
+        <h2 id={`served-${roaster.slug}`} className="t-title">
           Shops serving their beans
         </h2>
         {roaster.shops.length ? (

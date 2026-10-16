@@ -20,11 +20,12 @@ const ACTION_LABEL = { create: "Created", update: "Edited", hide: "Hidden", unhi
 // Field order and names as the form shows them. Anything else is not shown.
 const FIELD_LABEL: Record<string, string> = {
   name: "Name",
+  slug: "Slug",
   address: "Address",
   area_id: "Area",
   maps_url: "Google Maps link",
-  lat: "Latitude",
-  lng: "Longitude",
+  lat: "Map pin latitude",
+  lng: "Map pin longitude",
   type: "Type",
   roaster_ids: "Roasters served",
   roast_levels: "Roast levels",

@@ -3,8 +3,8 @@ import { appliedCount, clearFilters, emptyFilters, filtersToQuery, parseFilters,
 
 describe("parseFilters", () => {
   it("reads lists, single choices, search and page", () => {
-    const f = parseFilters({ q: " kopi ", roast: "light,medium", origin: "local", type: "maker", area: ["canggu", "ubud"], page: "3" });
-    expect(f).toEqual({ ...emptyFilters, q: "kopi", roast: ["light", "medium"], origin: "local", type: "maker", area: ["canggu", "ubud"], page: 3 });
+    const f = parseFilters({ q: " kopi ", roast: "light,medium", origin: "local", type: "brewer", area: ["canggu", "ubud"], page: "3" });
+    expect(f).toEqual({ ...emptyFilters, q: "kopi", roast: ["light", "medium"], origin: "local", type: "brewer", area: ["canggu", "ubud"], page: 3 });
   });
 
   it("drops values that aren't slugs, duplicates and unknown types", () => {
@@ -44,8 +44,16 @@ describe("toggleFilter", () => {
   });
 
   it("clearing keeps the search text", () => {
-    const f = { ...emptyFilters, q: "kopi", roast: ["dark"], type: "maker" as const };
+    const f = { ...emptyFilters, q: "kopi", roast: ["dark"], type: "brewer" as const };
     expect(clearFilters(f)).toEqual({ ...emptyFilters, q: "kopi" });
     expect(appliedCount(f)).toBe(2);
+  });
+});
+
+describe("slugify", async () => {
+  const { slugify } = await import("./shop-schema");
+  it("matches the database's slugs", () => {
+    expect(slugify("Kopi Café & Roastery!")).toBe("kopi-cafe-roastery");
+    expect(slugify("  --Sample  Bar-- ")).toBe("sample-bar");
   });
 });

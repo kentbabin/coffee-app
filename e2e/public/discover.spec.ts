@@ -114,9 +114,12 @@ test("P6: a submission is checked, sent and lands in the queue", async ({ page }
   await page.getByRole("button", { name: "Send for review" }).click();
   await expect(page.getByText("Enter the shop's name.")).toBeVisible();
 
-  await page.getByLabel(/^Shop name/).fill(name);
-  await page.getByLabel(/^Address or area/).fill("Canggu, near the beach");
-  await page.getByLabel(/^Why it's good/).fill("Light roast pour over.");
+  await page.getByRole("textbox", { name: /^Shop name/ }).fill(name);
+  await page.getByRole("textbox", { name: /^Google Maps link/ }).fill("https://example.com/cafe");
+  await page.getByRole("button", { name: "Send for review" }).click();
+  await expect(page.getByText("This isn't a Google Maps link.")).toBeVisible();
+  await page.getByRole("textbox", { name: /^Google Maps link/ }).fill("https://maps.app.goo.gl/AbCdEf123");
+  await page.getByRole("textbox", { name: /^Why it's good/ }).fill("Light roast pour over.");
   // Cloudflare's test key passes on its own; wait for its token.
   await expect(page.locator('input[name="cf-turnstile-response"]')).not.toHaveValue("", { timeout: 15_000 });
   await page.getByRole("button", { name: "Send for review" }).click();
@@ -127,4 +130,29 @@ test("P6: a submission is checked, sent and lands in the queue", async ({ page }
   expect(data?.status).toBe("pending");
   await db.from("shop_submissions").delete().eq("name", name);
   await db.from("rate_limit_events").delete().eq("bucket", "submit");
+});
+
+test.describe("on a wide screen", () => {
+  test.use({ viewport: { width: 1280, height: 900 }, isMobile: false, hasTouch: false });
+
+  test("filters sit behind a Filters button, with the areas beside it", async ({ page }) => {
+    await open(page, "/");
+    const button = page.getByRole("button", { name: /^Filters/ });
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("group", { name: "Roast" })).toBeHidden();
+    await expect(page.locator(".filters-open").getByRole("button", { name: "Canggu" })).toBeVisible();
+
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const panel = page.locator("#filters-panel");
+    await panel.getByRole("group", { name: "Roaster or brewer" }).getByRole("button", { name: "Roaster and brewer" }).click();
+    await expect(page).toHaveURL(/type=both/);
+    for (const card of await page.getByRole("article").all()) await expect(card).toContainText("Roaster and brewer");
+    // Area is in the row, not repeated in the panel.
+    await expect(panel.getByRole("group", { name: "Area" })).toHaveCount(0);
+
+    await button.click();
+    await expect(panel).toBeHidden();
+  });
 });

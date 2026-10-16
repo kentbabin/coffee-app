@@ -2,6 +2,7 @@
 
 import { updateTag } from "next/cache";
 import { requireAdmin } from "@/lib/admin/session";
+import { pinFromMapsUrl } from "@/lib/maps-pin";
 import { instagramHandle, shopFormSchema, type ShopFormValues } from "@/lib/shop-schema";
 
 export type SaveShopResult =
@@ -29,17 +30,25 @@ export async function saveShop(input: {
     return { ok: false, error: "Some fields need attention. Check the messages below each one.", fieldErrors };
   }
   const v = parsed.data;
-  const servesRoasters = v.type !== "roaster";
+
+  // The pin comes from the Maps link. If it can't be read this time, an
+  // unchanged link keeps the pin it already had.
+  let pin = v.maps_url ? await pinFromMapsUrl(v.maps_url) : null;
+  if (!pin && input.id && v.maps_url) {
+    const { data: current } = await supabase.from("shops").select("maps_url, lat, lng").eq("id", input.id).maybeSingle();
+    if (current?.maps_url === v.maps_url && current.lat !== null && current.lng !== null) pin = { lat: current.lat, lng: current.lng };
+  }
 
   const { data, error } = await supabase.rpc("save_shop", {
     p_shop: {
       id: input.id ?? null,
       name: v.name,
+      slug: v.slug,
       address: v.address,
       area_id: v.area_id,
       maps_url: v.maps_url,
-      lat: v.lat === "" ? null : Number(v.lat),
-      lng: v.lng === "" ? null : Number(v.lng),
+      lat: pin?.lat ?? null,
+      lng: pin?.lng ?? null,
       type: v.type,
       roast_levels: v.roast_levels,
       bean_origin: v.bean_origin,
@@ -51,14 +60,18 @@ export async function saveShop(input: {
       ...(input.id ? {} : { is_hidden: v.is_hidden }),
     },
     p_preparation_ids: v.preparation_ids,
-    p_roaster_ids: servesRoasters ? v.roaster_ids : [],
-    p_new_roasters: servesRoasters ? v.new_roasters : [],
+    p_roaster_ids: v.roaster_ids,
+    p_new_roasters: v.new_roasters,
     p_expected_updated_at: input.expectedUpdatedAt,
     p_submission_id: input.submissionId,
   });
 
   if (error) {
     if (error.code === "CA409") return { ok: false, error: error.message };
+    if (error.code === "23505" && error.message.includes("shops_slug_key")) {
+      const slug = { slug: "Another shop already uses this slug. Change it a little, for example by adding the area." };
+      return { ok: false, error: "Some fields need attention. Check the messages below each one.", fieldErrors: slug };
+    }
     return { ok: false, error: `The shop couldn't be saved: ${error.message}` };
   }
 

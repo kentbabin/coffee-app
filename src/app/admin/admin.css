@@ -84,6 +84,9 @@
   padding-bottom: var(--space-8);
 }
 
+/* Lists laid out as cards or rows: no browser indent or bullets. */
+.adm-options, .adm-cards, .adm-history { margin: 0; padding: 0; list-style: none; }
+
 /* Page furniture */
 .adm-page-head {
   display: flex;
@@ -302,7 +305,6 @@
   background: var(--surface-raised);
   color: var(--ink);
 }
-.adm-option__slug { font: 500 13px/18px var(--font-mono); color: var(--ink-muted); }
 .adm-option__buttons { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .adm-icon-btn {
   display: inline-flex;

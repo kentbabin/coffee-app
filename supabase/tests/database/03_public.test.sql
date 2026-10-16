@@ -4,11 +4,11 @@ set search_path = public, extensions;
 select plan(22);
 
 insert into shops (id, name, address, area_id, type, roast_levels, bean_origin, processing, description)
-select '00000000-0000-0000-0000-00000000f101', 'Vote Test Cafe', 'Jl. Test 20', id, 'maker', '{light}', 'local', '{washed}',
+select '00000000-0000-0000-0000-00000000f101', 'Vote Test Cafe', 'Jl. Test 20', id, 'brewer', '{light}', 'local', '{washed}',
   'Zzyzx single origin.'
 from areas where slug = 'kuta';
 insert into shops (id, name, address, area_id, type, roast_levels, bean_origin, processing, is_hidden)
-select '00000000-0000-0000-0000-00000000f102', 'Hidden Vote Cafe', 'Jl. Test 21', id, 'maker', '{light}', 'local', '{washed}', true
+select '00000000-0000-0000-0000-00000000f102', 'Hidden Vote Cafe', 'Jl. Test 21', id, 'brewer', '{light}', 'local', '{washed}', true
 from areas where slug = 'kuta';
 
 -- ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ select lives_ok(
 -- P6: submissions
 -- ---------------------------------------------------------------------------
 select isnt(
-  submit_shop('A New Cafe', 'Jl. New 1', null, 'Great pour over.', 'Someone@Example.com', 'ip-4'), null,
+  submit_shop('A New Cafe', 'https://maps.app.goo.gl/AbC123', 'Great pour over.', 'Someone@Example.com', 'ip-4'), null,
   'a submission is accepted'
 );
 select results_eq(
@@ -85,14 +85,14 @@ select results_eq(
   $$ values ('pending', 'someone@example.com') $$,
   'a submission waits in the queue as pending'
 );
-select submit_shop('Cafe ' || n, 'Jl. Spam', null, null, null, 'ip-5') from generate_series(1, 5) as n;
+select submit_shop('Cafe ' || n, 'https://maps.app.goo.gl/spam', null, null, 'ip-5') from generate_series(1, 5) as n;
 select throws_ok(
-  $$ select submit_shop('Cafe 6', 'Jl. Spam', null, null, null, 'ip-5') $$,
+  $$ select submit_shop('Cafe 6', 'https://maps.app.goo.gl/spam', null, null, 'ip-5') $$,
   'CA429', null, 'the 6th submission in an hour from one IP is rejected'
 );
 select throws_ok(
-  $$ select submit_shop('No Address', '', null, null, null, 'ip-6') $$,
-  '23514', null, 'a submission needs an address or area'
+  $$ select submit_shop('Not Maps', 'https://example.com/cafe', null, null, 'ip-6') $$,
+  '23514', null, 'a submission needs a Google Maps link'
 );
 
 -- ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ select is(
   'search tolerates a typo in the name'
 );
 select is(
-  (select name from search_shops(p_query => 'kuta', p_roast => '{light}', p_type => 'maker') limit 1), 'Vote Test Cafe',
+  (select name from search_shops(p_query => 'kuta', p_roast => '{light}', p_type => 'brewer') limit 1), 'Vote Test Cafe',
   'search combines with filters'
 );
 select is_empty(
@@ -127,8 +127,8 @@ select is_empty(
   'bean origin local returns local and both'
 );
 select is_empty(
-  $$ select 1 from search_shops(p_type => 'roaster') where type not in ('roaster', 'both') $$,
-  'type roaster returns roasters and shops that are both'
+  $$ select 1 from search_shops(p_type => 'both') where type <> 'both' $$,
+  'the type filter matches exactly'
 );
 select is_empty(
   $$ select 1 from search_shops(p_areas => '{canggu}', p_preparations => '{manual}')

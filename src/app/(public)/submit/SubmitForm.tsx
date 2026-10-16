@@ -1,8 +1,9 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Button, Field } from "@/components/ui";
+import { isGoogleMapsUrl } from "@/lib/maps";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 
 type Turnstile = {
@@ -16,19 +17,21 @@ declare global {
   }
 }
 
-type Errors = Partial<Record<"name" | "address" | "maps_url" | "email" | "form", string>>;
+type Errors = Partial<Record<"name" | "maps_url" | "email" | "form", string>>;
 
 function validate(fd: FormData): Errors {
   const errors: Errors = {};
   const s = (k: string) => String(fd.get(k) ?? "").trim();
   if (!s("name")) errors.name = "Enter the shop's name.";
-  if (!s("address")) errors.address = "Enter the address, or at least the area, like Canggu.";
-  if (s("maps_url") && !/^https?:\/\/\S+$/i.test(s("maps_url"))) errors.maps_url = "Paste a link that starts with https://, or leave it empty.";
+  if (!s("maps_url")) errors.maps_url = "Paste the shop's Google Maps link. In Google Maps, tap Share, then Copy link.";
+  else if (!isGoogleMapsUrl(s("maps_url"))) errors.maps_url = "This isn't a Google Maps link. In Google Maps, tap Share, then Copy link, and paste it here.";
   if (s("email") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s("email"))) errors.email = "Enter an email like name@example.com, or leave it empty.";
   return errors;
 }
 
 export function SubmitForm({ siteKey }: { siteKey: string }) {
+  const uid = useId();
+  const fid = (name: string) => `${uid}${name}`;
   const widget = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
@@ -36,6 +39,9 @@ export function SubmitForm({ siteKey }: { siteKey: string }) {
   const [errors, setErrors] = useState<Errors>({});
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Next.js keeps this page when you leave it; come back to an empty form, not the thank-you.
+  useLayoutEffect(() => () => setSent(false), []);
 
   useEffect(() => {
     if ((!scriptReady && !window.turnstile) || !widget.current || widgetId.current || sent) return;
@@ -109,15 +115,25 @@ export function SubmitForm({ siteKey }: { siteKey: string }) {
             {errors.form}
           </p>
         ) : null}
-        <Field id="s-name" name="name" label="Shop name" required maxLength={120} error={errors.name} autoComplete="off" />
-        <Field id="s-address" name="address" label="Address or area" required maxLength={300} error={errors.address} autoComplete="off" />
-        <Field id="s-maps" name="maps_url" label="Google Maps link" type="url" inputMode="url" maxLength={500} error={errors.maps_url} hint="Optional. Helps the review go faster." />
-        <Field id="s-notes" name="notes" as="textarea" label="Why it's good" maxLength={1000} hint="Optional. Roast, preparation, beans: whatever stood out." />
-        <Field id="s-email" name="email" type="email" label="Your email" autoComplete="email" error={errors.email} hint="Optional, only for follow-up questions. Never shown." />
+        <Field id={fid("s-name")} name="name" label="Shop name" required maxLength={120} error={errors.name} autoComplete="off" />
+        <Field
+          id={fid("s-maps")}
+          name="maps_url"
+          label="Google Maps link"
+          required
+          type="url"
+          inputMode="url"
+          maxLength={500}
+          placeholder="https://maps.app.goo.gl/…"
+          error={errors.maps_url}
+          hint="In Google Maps, tap Share, then Copy link."
+        />
+        <Field id={fid("s-notes")} name="notes" as="textarea" label="Why it's good" maxLength={1000} hint="Optional. Roast, preparation, beans: whatever stood out." />
+        <Field id={fid("s-email")} name="email" type="email" label="Your email" autoComplete="email" error={errors.email} hint="Optional, only for follow-up questions. Never shown." />
         {/* Honeypot: people never see it, bots fill it in. */}
         <div className="honeypot" aria-hidden="true">
-          <label htmlFor="s-website">Website</label>
-          <input id="s-website" name="website" tabIndex={-1} autoComplete="off" />
+          <label htmlFor={fid("s-website")}>Website</label>
+          <input id={fid("s-website")} name="website" tabIndex={-1} autoComplete="off" />
         </div>
         <div ref={widget} />
         <div>

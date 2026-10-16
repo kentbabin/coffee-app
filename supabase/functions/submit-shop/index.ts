@@ -1,12 +1,16 @@
 // P6: submit a shop for review. Lands in the moderation queue as pending.
-// POST { name, address, maps_url?, notes?, email?, website (honeypot), turnstile_token }
+// POST { name, maps_url, notes?, email?, website (honeypot), turnstile_token }
 import { z } from "npm:zod@4.6.7";
 import { callerIp, dbError, ipHash, json, preflight, serviceClient } from "../_shared/http.ts";
 
 const Body = z.object({
   name: z.string().trim().min(1).max(120),
-  address: z.string().trim().min(1).max(300),
-  maps_url: z.union([z.literal(""), z.url({ protocol: /^https?$/ }).max(500)]).default(""),
+  // Full links and share links (maps.app.goo.gl) both count; the database checks the same rule.
+  maps_url: z
+    .string()
+    .trim()
+    .max(500)
+    .regex(/^https?:\/\/((www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)/i),
   notes: z.string().trim().max(1000).default(""),
   email: z.union([z.literal(""), z.email().max(254)]).default(""),
   // Hidden from people; bots fill it in.
@@ -30,7 +34,7 @@ Deno.serve(async (req) => {
   if (early) return early;
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return json({ error: "Check the form: a shop name and an address or area are required." }, 400);
+  if (!parsed.success) return json({ error: "Check the form: a shop name and its Google Maps link are required." }, 400);
   const body = parsed.data;
 
   // A filled honeypot gets the normal success reply, so bots learn nothing.
@@ -42,7 +46,6 @@ Deno.serve(async (req) => {
 
   const { error } = await serviceClient().rpc("submit_shop", {
     p_name: body.name,
-    p_address: body.address,
     p_maps_url: body.maps_url,
     p_notes: body.notes,
     p_submitter_email: body.email,

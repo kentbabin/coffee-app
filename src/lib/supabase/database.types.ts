@@ -219,16 +219,36 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"shop_submissions": {
+                },"shop_slug_redirects": {
                   Row: {
-                    "address": string | null,"area_text": string | null,"created_at": string,"id": string,"ip_hash": string | null,"maps_url": string | null,"name": string,"notes": string | null,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"shop_id": string | null,"status": Database["public"]['Enums']["submission_status"],"submitter_email": string | null
+                    "created_at": string,"shop_id": string,"slug": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"area_text"?: string | null,"created_at"?: string,"id"?: string,"ip_hash"?: string | null,"maps_url"?: string | null,"name": string,"notes"?: string | null,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"shop_id"?: string | null,"status"?: Database["public"]['Enums']["submission_status"],"submitter_email"?: string | null
+                    "created_at"?: string,"shop_id": string,"slug": string
                   }
                   Update: {
-                    "address"?: string | null,"area_text"?: string | null,"created_at"?: string,"id"?: string,"ip_hash"?: string | null,"maps_url"?: string | null,"name"?: string,"notes"?: string | null,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"shop_id"?: string | null,"status"?: Database["public"]['Enums']["submission_status"],"submitter_email"?: string | null
+                    "created_at"?: string,"shop_id"?: string,"slug"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shop_slug_redirects_shop_id_fkey"
+      columns: ["shop_id"]
+isOneToOne: false
+      referencedRelation: "shops"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shop_submissions": {
+                  Row: {
+                    "address": string | null,"area_text": string | null,"created_at": string,"id": string,"ip_hash": string | null,"maps_url": string,"name": string,"notes": string | null,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"shop_id": string | null,"status": Database["public"]['Enums']["submission_status"],"submitter_email": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "address"?: string | null,"area_text"?: string | null,"created_at"?: string,"id"?: string,"ip_hash"?: string | null,"maps_url": string,"name": string,"notes"?: string | null,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"shop_id"?: string | null,"status"?: Database["public"]['Enums']["submission_status"],"submitter_email"?: string | null
+                  }
+                  Update: {
+                    "address"?: string | null,"area_text"?: string | null,"created_at"?: string,"id"?: string,"ip_hash"?: string | null,"maps_url"?: string,"name"?: string,"notes"?: string | null,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"shop_id"?: string | null,"status"?: Database["public"]['Enums']["submission_status"],"submitter_email"?: string | null
                   }
                   Relationships: [
                     {
@@ -381,7 +401,7 @@ isOneToOne: true
 { Args: { "value": string }; Returns: string
                            },
 "submit_shop":
-{ Args: { "p_address": string,"p_ip_hash": string,"p_maps_url": string,"p_name": string,"p_notes": string,"p_submitter_email": string }; Returns: string
+{ Args: { "p_ip_hash": string,"p_maps_url": string,"p_name": string,"p_notes": string,"p_submitter_email": string }; Returns: string
                            },
 "unique_slug":
 { Args: { "p_fallback": string,"p_name": string,"p_table": unknown }; Returns: string
@@ -391,7 +411,7 @@ isOneToOne: true
                            }
           }
           Enums: {
-            "revision_action": "create"|"update"|"hide"|"unhide","shop_type": "roaster"|"maker"|"both","submission_status": "pending"|"approved"|"rejected"
+            "revision_action": "create"|"update"|"hide"|"unhide","shop_type": "brewer"|"both","submission_status": "pending"|"approved"|"rejected"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -511,7 +531,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "revision_action": ["create", "update", "hide", "unhide"],"shop_type": ["roaster", "maker", "both"],"submission_status": ["pending", "approved", "rejected"]
+            "revision_action": ["create", "update", "hide", "unhide"],"shop_type": ["brewer", "both"],"submission_status": ["pending", "approved", "rejected"]
           }
         }
 } as const

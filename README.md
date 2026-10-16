@@ -44,7 +44,7 @@ Sign in at <http://localhost:3000/admin>. Locally, sign-in emails go to Mailpit 
 
 ## How it fits together
 
-- **Schema**: [supabase/migrations](supabase/migrations). Schema changes go through new migration files only.
+- **Schema**: [supabase/migrations](supabase/migrations). Nothing is deployed yet, so these first migrations are still edited in place. Once staging exists, schema changes go through new migration files only.
 - **Visitors** read through the Data API as the anonymous role; RLS hides hidden shops. They write only through two Edge Functions, [vote](supabase/functions/vote/index.ts) and [submit-shop](supabase/functions/submit-shop/index.ts), which hash the caller's IP and call rate-limited database functions with the service role.
 - **Admins** are users with a row in `public.admins`, invited with `npm run admin:add`. Sign-up is off. Admin writes go through Server Actions acting as the signed-in admin, so RLS applies to them too.
 - **Change history** is written by a database trigger on `shops`, one revision per save, so no code path can edit a shop without leaving a record.

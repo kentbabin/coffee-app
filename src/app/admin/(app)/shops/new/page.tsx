@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/ui";
 import { requireAdmin } from "@/lib/admin/session";
-import { parseMapsUrl } from "@/lib/maps";
 import { getOptionLists } from "@/lib/options-data";
 import { emptyShopForm, type ShopFormValues } from "@/lib/shop-schema";
 import { ShopForm } from "../ShopForm";
@@ -27,15 +26,7 @@ export default async function NewShopPage({ searchParams }: PageProps<"/admin/sh
   const sub = submission?.data ?? null;
   let initial: ShopFormValues = emptyShopForm;
   if (sub) {
-    const pin = parseMapsUrl(sub.maps_url ?? "");
-    initial = {
-      ...emptyShopForm,
-      name: sub.name,
-      address: sub.address ?? sub.area_text ?? "",
-      maps_url: sub.maps_url ?? "",
-      lat: pin.kind === "coords" ? String(pin.lat) : "",
-      lng: pin.kind === "coords" ? String(pin.lng) : "",
-    };
+    initial = { ...emptyShopForm, name: sub.name, address: sub.address ?? "", maps_url: sub.maps_url };
   }
 
   return (
@@ -52,18 +43,12 @@ export default async function NewShopPage({ searchParams }: PageProps<"/admin/sh
           <dl className="adm-meta">
             <dt>Name</dt>
             <dd>{sub.name}</dd>
-            <dt>Address or area</dt>
-            <dd>{sub.address ?? sub.area_text}</dd>
-            {sub.maps_url ? (
-              <>
-                <dt>Maps link</dt>
-                <dd>
-                  <a href={sub.maps_url} target="_blank" rel="noreferrer">
-                    {sub.maps_url}
-                  </a>
-                </dd>
-              </>
-            ) : null}
+            <dt>Maps link</dt>
+            <dd>
+              <a href={sub.maps_url} target="_blank" rel="noreferrer">
+                {sub.maps_url}
+              </a>
+            </dd>
             {sub.notes ? (
               <>
                 <dt>Notes</dt>
@@ -71,7 +56,7 @@ export default async function NewShopPage({ searchParams }: PageProps<"/admin/sh
               </>
             ) : null}
           </dl>
-          <p className="t-body-sm t-muted">Fill in the rest and save to publish it. Saving marks the submission approved.</p>
+          <p className="t-body-sm t-muted">Open the Maps link for the address and area, fill in the rest, and save to publish it. Saving marks the submission approved.</p>
         </div>
       ) : typeof submissionId === "string" ? (
         <p className="adm-error">That submission was already reviewed, or no longer exists. You can still add the shop by hand.</p>

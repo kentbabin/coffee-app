@@ -7,6 +7,7 @@ export function AdminNav({ pending }: { pending: number }) {
   const path = usePathname();
   const links = [
     { href: "/admin", label: "Shops", current: path === "/admin" || path.startsWith("/admin/shops") },
+    { href: "/admin/roasters", label: "Roasters", current: path.startsWith("/admin/roasters") },
     { href: "/admin/submissions", label: pending ? `Submissions (${pending})` : "Submissions", current: path.startsWith("/admin/submissions") },
     { href: "/admin/options", label: "Option lists", current: path.startsWith("/admin/options") },
   ];

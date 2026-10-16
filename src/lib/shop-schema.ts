@@ -9,12 +9,6 @@ const optionalUrl = z
   .max(500)
   .refine((v) => v === "" || /^https?:\/\/\S+$/i.test(v), "Enter a link that starts with https://");
 
-const coordinate = (max: number, name: string) =>
-  z
-    .string()
-    .trim()
-    .refine((v) => v === "" || (Number.isFinite(Number(v)) && Math.abs(Number(v)) <= max), `Enter the ${name} as a number, like ${max === 90 ? "-8.6478" : "115.1385"}.`);
-
 export const newRoasterSchema = z.object({
   name: z.string().trim().min(1, "Enter the roaster's name.").max(120),
   city: z.string().trim().max(80),
@@ -24,12 +18,16 @@ export const newRoasterSchema = z.object({
 export const shopFormSchema = z
   .object({
     name: z.string().trim().min(1, "Enter the shop's name.").max(120, "Keep the name under 120 characters."),
+    // Empty on a new shop: generated from the name.
+    slug: z
+      .string()
+      .trim()
+      .max(120)
+      .refine((v) => v === "" || /^[a-z0-9]+(-[a-z0-9]+)*$/.test(v), "Use lowercase letters, numbers and single hyphens, like sample-roastery."),
     address: z.string().trim().min(1, "Enter the address.").max(300),
     area_id: z.string().min(1, "Choose an area."),
     maps_url: optionalUrl,
-    lat: coordinate(90, "latitude"),
-    lng: coordinate(180, "longitude"),
-    type: z.enum(["roaster", "maker", "both"], { error: "Choose whether the shop roasts, makes coffee, or both." }),
+    type: z.enum(["brewer", "both"], { error: "Choose whether the shop also roasts its own beans." }),
     roaster_ids: z.array(z.string()),
     new_roasters: z.array(newRoasterSchema),
     roast_levels: z.array(z.string()).min(1, "Choose at least one roast level."),
@@ -40,22 +38,17 @@ export const shopFormSchema = z
     website: optionalUrl,
     instagram: z.string().trim().max(60),
     is_hidden: z.boolean(),
-  })
-  .refine((v) => (v.lat === "") === (v.lng === ""), {
-    path: ["lng"],
-    message: "Enter both latitude and longitude, or leave both empty.",
   });
 
 export type ShopFormValues = z.input<typeof shopFormSchema>;
 
 export const emptyShopForm: ShopFormValues = {
   name: "",
+  slug: "",
   address: "",
   area_id: "",
   maps_url: "",
-  lat: "",
-  lng: "",
-  type: "maker",
+  type: "brewer",
   roaster_ids: [],
   new_roasters: [],
   roast_levels: [],
@@ -68,6 +61,16 @@ export const emptyShopForm: ShopFormValues = {
   is_hidden: false,
 };
 
+/** A slug from a name, matching the database's slugify(): "Kopi Café!" becomes "kopi-cafe". */
+export function slugify(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /** "@sample.roastery" or an instagram.com link becomes "sample.roastery". */
 export function instagramHandle(value: string) {
   return value
@@ -76,3 +79,13 @@ export function instagramHandle(value: string) {
     .replace(/^@/, "")
     .replace(/\/.*$/, "");
 }
+
+/** The admin roaster form. A roaster linked to a shop takes its name and processing from the shop. */
+export const roasterFormSchema = z.object({
+  name: z.string().trim().min(1, "Enter the roaster's name.").max(120, "Keep the name under 120 characters."),
+  city: z.string().trim().max(80),
+  processing: z.array(z.string()),
+  website: optionalUrl,
+});
+
+export type RoasterFormValues = z.input<typeof roasterFormSchema>;

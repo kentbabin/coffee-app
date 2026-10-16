@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { ShopVote } from "@/components/ShopVote";
-import { Button, Chip, EmptyState, FilterDrawer, FilterGroup, SearchField, ShopCard } from "@/components/ui";
+import { Button, Chip, EmptyState, FilterDrawer, FilterGroup, Icon, SearchField, ShopCard } from "@/components/ui";
 import { appliedCount, clearFilters, filtersToQuery, toggleFilter, type FilterKey, type Filters } from "@/lib/filters";
-import { plural } from "@/lib/labels";
+import { plural, TYPE_LABEL } from "@/lib/labels";
 import { active, type OptionLists } from "@/lib/options";
 import type { ShopSummary } from "@/lib/shops";
 
@@ -23,10 +23,10 @@ function groupsFor(options: OptionLists): Group[] {
     { key: "area", label: "Area", choices: toChoices(active(options.areas)) },
     {
       key: "type",
-      label: "Roaster or maker",
+      label: "Roaster or brewer",
       choices: [
-        { value: "roaster", label: "Roaster" },
-        { value: "maker", label: "Maker" },
+        { value: "both", label: TYPE_LABEL.both },
+        { value: "brewer", label: TYPE_LABEL.brewer },
       ],
     },
   ];
@@ -43,7 +43,9 @@ export function Discover({ filters: fromServer, options, results }: { filters: F
   // Chips change at once; the URL change brings the matching results.
   const [filters, setOptimistic] = useOptimistic(fromServer);
   const [query, setQuery] = useState(fromServer.q);
+  // Phones open the filters as a drawer; wider screens expand them in place.
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const latest = useRef(filters);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
@@ -97,7 +99,13 @@ export function Discover({ filters: fromServer, options, results }: { filters: F
     go({ ...clearFilters(filters), q: "" });
   };
 
-  const groupElements = groups.map((g) => (
+  function openFilters() {
+    if (window.matchMedia("(min-width: 720px)").matches) setPanelOpen((open) => !open);
+    else setDrawerOpen(true);
+  }
+
+  const groupElements = (skip?: FilterKey) =>
+    groups.filter((g) => g.key !== skip).map((g) => (
     <FilterGroup key={g.key} label={g.label}>
       {g.key === "type" ? (
         <Chip selected={!filters.type} onToggle={() => filters.type && toggle("type", filters.type)}>
@@ -110,7 +118,7 @@ export function Discover({ filters: fromServer, options, results }: { filters: F
         </Chip>
       ))}
     </FilterGroup>
-  ));
+    ));
 
   const appliedChips = groups.flatMap((g) =>
     g.choices
@@ -129,10 +137,13 @@ export function Discover({ filters: fromServer, options, results }: { filters: F
       <SearchField id="home-q" value={query} onChange={(e) => onSearch(e.target.value)} />
 
       <div className="filters-open">
-        <Button variant="secondary" onClick={() => setDrawerOpen(true)} aria-haspopup="dialog">
+        <Button variant="secondary" onClick={openFilters} aria-expanded={drawerOpen || panelOpen} aria-controls="filters-panel">
           {applied ? `Filters (${applied})` : "Filters"}
+          <span className="filters-open__chevron">
+            <Icon name={panelOpen ? "chevronUp" : "chevronDown"} size={16} />
+          </span>
         </Button>
-        {/* P1: one-tap area filter above the list on a phone. */}
+        {/* P1: one-tap area filter above the list. */}
         {groups
           .find((g) => g.key === "area")!
           .choices.map((c) => (
@@ -141,7 +152,10 @@ export function Discover({ filters: fromServer, options, results }: { filters: F
             </Chip>
           ))}
       </div>
-      <div className="filters-panel">{groupElements}</div>
+      {/* Area is already in the row above, so the panel leaves it out. */}
+      <div className="filters-panel" id="filters-panel" hidden={!panelOpen}>
+        {groupElements("area")}
+      </div>
 
       <div className="status">
         <div className="applied">
@@ -193,7 +207,7 @@ export function Discover({ filters: fromServer, options, results }: { filters: F
       </div>
 
       <FilterDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onClear={clear} resultCount={total}>
-        {groupElements}
+        {groupElements()}
       </FilterDrawer>
     </>
   );

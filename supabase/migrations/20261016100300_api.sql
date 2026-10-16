@@ -72,8 +72,7 @@ as $$
       and (coalesce(cardinality(p_processing), 0) = 0 or s.processing && p_processing)
       -- "Local" also shows shops with both local and imported beans; likewise "foreign".
       and (p_bean_origin is null or s.bean_origin = p_bean_origin or s.bean_origin = 'both')
-      -- "Roaster" and "Maker" both include shops that are both.
-      and (p_type is null or s.type = p_type or s.type = 'both')
+      and (p_type is null or s.type = p_type)
       and (coalesce(cardinality(p_areas), 0) = 0 or a.slug = any (p_areas))
   )
   select
@@ -161,6 +160,8 @@ begin
 
     update public.shops set
       name = trim(p_shop ->> 'name'),
+      -- Empty keeps the current slug (see shops_before_write).
+      slug = nullif(trim(p_shop ->> 'slug'), ''),
       address = trim(p_shop ->> 'address'),
       area_id = (p_shop ->> 'area_id')::uuid,
       maps_url = nullif(trim(p_shop ->> 'maps_url'), ''),
@@ -178,10 +179,12 @@ begin
     returning * into v_shop;
   else
     insert into public.shops (
-      name, address, area_id, maps_url, lat, lng, type,
+      name, slug, address, area_id, maps_url, lat, lng, type,
       roast_levels, bean_origin, processing, description, website, instagram, is_hidden
     ) values (
       trim(p_shop ->> 'name'),
+      -- Empty generates one from the name.
+      nullif(trim(p_shop ->> 'slug'), ''),
       trim(p_shop ->> 'address'),
       (p_shop ->> 'area_id')::uuid,
       nullif(trim(p_shop ->> 'maps_url'), ''),
@@ -211,8 +214,8 @@ begin
     v_roaster_ids := v_roaster_ids || v_new_id;
   end loop;
 
-  -- A shop of type roaster or both appears in the roasters list through a linked record.
-  if v_shop.type in ('roaster', 'both') then
+  -- A shop that also roasts appears in the roasters list through a linked record.
+  if v_shop.type = 'both' then
     update public.roasters
     set name = v_shop.name, processing = v_shop.processing, website = coalesce(v_shop.website, website)
     where shop_id = v_shop.id;
@@ -225,10 +228,7 @@ begin
     update public.roasters set shop_id = null where shop_id = v_shop.id;
   end if;
 
-  -- Only makers (and shops that are both) list the roasters whose beans they serve.
-  if v_shop.type = 'roaster' then
-    v_roaster_ids := '{}';
-  end if;
+  -- The roasters whose beans the shop serves.
   delete from public.shop_roasters where shop_id = v_shop.id and roaster_id <> all (v_roaster_ids);
   insert into public.shop_roasters (shop_id, roaster_id)
   select v_shop.id, r from unnest(v_roaster_ids) as r
@@ -311,7 +311,6 @@ $$;
 
 create function public.submit_shop(
   p_name text,
-  p_address text,
   p_maps_url text,
   p_notes text,
   p_submitter_email text,
@@ -333,11 +332,10 @@ begin
   end if;
   insert into public.rate_limit_events (bucket, key) values ('submit', p_ip_hash);
 
-  insert into public.shop_submissions (name, address, maps_url, notes, submitter_email, ip_hash)
+  insert into public.shop_submissions (name, maps_url, notes, submitter_email, ip_hash)
   values (
     trim(p_name),
-    nullif(trim(p_address), ''),
-    nullif(trim(p_maps_url), ''),
+    trim(p_maps_url),
     nullif(trim(p_notes), ''),
     nullif(lower(trim(p_submitter_email)), ''),
     p_ip_hash
@@ -356,7 +354,7 @@ revoke execute on function
   public.save_shop(jsonb, uuid[], uuid[], jsonb, timestamptz, uuid),
   public.find_similar_shops(text, uuid, uuid),
   public.cast_vote(uuid, uuid, text, smallint),
-  public.submit_shop(text, text, text, text, text, text)
+  public.submit_shop(text, text, text, text, text)
 from public, anon, authenticated;
 
 grant execute on function
@@ -370,5 +368,5 @@ to authenticated;
 
 grant execute on function
   public.cast_vote(uuid, uuid, text, smallint),
-  public.submit_shop(text, text, text, text, text, text)
+  public.submit_shop(text, text, text, text, text)
 to service_role;

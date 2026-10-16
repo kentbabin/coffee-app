@@ -2,17 +2,17 @@
 -- anything directly. Signed-in users who are not admins get the same.
 begin;
 set search_path = public, extensions;
-select plan(31);
+select plan(32);
 
 -- Fixtures, created as the table owner.
 insert into auth.users (id, email, aud, role)
 values ('00000000-0000-0000-0000-0000000000aa', 'not-an-admin@example.com', 'authenticated', 'authenticated');
 
 insert into shops (id, name, address, area_id, type, roast_levels, bean_origin, processing, is_hidden)
-select '00000000-0000-0000-0000-00000000f001', 'Test Hidden Shop', 'Jl. Test 1', id, 'maker', '{light}', 'local', '{washed}', true
+select '00000000-0000-0000-0000-00000000f001', 'Test Hidden Shop', 'Jl. Test 1', id, 'brewer', '{light}', 'local', '{washed}', true
 from areas where slug = 'canggu';
 
-insert into shop_submissions (name, address) values ('Test Submission', 'Jl. Test 2');
+insert into shop_submissions (name, maps_url) values ('Test Submission', 'https://maps.app.goo.gl/test');
 
 -- Every public table has RLS switched on.
 select is_empty(
@@ -38,13 +38,17 @@ select is_empty(
   $$ select 1 from search_shops(p_query => 'Test Hidden Shop') $$,
   'search_shops never returns hidden shops'
 );
+select throws_ok(
+  $$ insert into shop_slug_redirects (slug, shop_id) select 'x', id from shops limit 1 $$,
+  '42501', null, 'anon cannot write slug redirects'
+);
 select isnt_empty($$ select 1 from shops $$, 'anon can read visible shops');
 select isnt_empty($$ select 1 from roaster_directory $$, 'anon can read the roasters list');
 select isnt_empty($$ select 1 from areas $$, 'anon can read option lists');
 
 select throws_ok(
   $$ insert into shops (name, address, area_id, type, roast_levels, bean_origin, processing)
-     select 'Sneaky', 'x', id, 'maker', '{light}', 'local', '{washed}' from areas limit 1 $$,
+     select 'Sneaky', 'x', id, 'brewer', '{light}', 'local', '{washed}' from areas limit 1 $$,
   '42501', null, 'anon cannot insert shops'
 );
 select throws_ok($$ update shops set name = 'Changed' $$, '42501', null, 'anon cannot update shops');
@@ -57,7 +61,7 @@ select throws_ok(
   '42501', null, 'anon cannot write votes directly'
 );
 select throws_ok(
-  $$ insert into shop_submissions (name, address) values ('Direct', 'x') $$,
+  $$ insert into shop_submissions (name, maps_url) values ('Direct', 'https://maps.app.goo.gl/x') $$,
   '42501', null, 'anon cannot write submissions directly'
 );
 select throws_ok($$ select * from shop_votes $$, '42501', null, 'anon cannot read votes');
@@ -74,7 +78,7 @@ select throws_ok(
   '42501', null, 'anon cannot call cast_vote directly'
 );
 select throws_ok(
-  $$ select submit_shop('x', 'x', null, null, null, 'x') $$,
+  $$ select submit_shop('x', 'https://maps.app.goo.gl/x', null, null, 'x') $$,
   '42501', null, 'anon cannot call submit_shop directly'
 );
 
@@ -89,7 +93,7 @@ select ok(not is_admin(), 'a user without an admins row is not an admin');
 select is_empty($$ select 1 from shops where is_hidden $$, 'non-admin cannot read hidden shops');
 select throws_ok(
   $$ insert into shops (name, address, area_id, type, roast_levels, bean_origin, processing)
-     select 'Sneaky', 'x', id, 'maker', '{light}', 'local', '{washed}' from areas limit 1 $$,
+     select 'Sneaky', 'x', id, 'brewer', '{light}', 'local', '{washed}' from areas limit 1 $$,
   '42501', null, 'non-admin cannot insert shops'
 );
 select is_empty(

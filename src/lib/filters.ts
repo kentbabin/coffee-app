@@ -10,8 +10,8 @@ export type Filters = {
   /** Single choice: "local" or "foreign" ("both" shops match either). */
   origin: string;
   processing: string[];
-  /** Single choice: "roaster" or "maker" ("both" shops match either). */
-  type: "" | "roaster" | "maker";
+  /** Single choice: "both" (roasts its own beans too) or "brewer". */
+  type: "" | "both" | "brewer";
   area: string[];
   /** How many pages of 24 are shown ("Load more"). */
   page: number;
@@ -44,7 +44,7 @@ export function parseFilters(params: Params): Filters {
     prep: list(params.prep),
     origin: SLUG.test(origin) ? origin : "",
     processing: list(params.processing),
-    type: type === "roaster" || type === "maker" ? type : "",
+    type: type === "both" || type === "brewer" ? type : "",
     area: list(params.area),
     page: Number.isFinite(page) && page > 1 ? Math.min(page, 50) : 1,
   };

@@ -35,17 +35,11 @@ export default async function SubmissionsPage() {
                 <StatusTag kind="pending" />
               </div>
               <dl className="adm-meta">
-                <dt>Address or area</dt>
-                <dd>{s.address ?? s.area_text}</dd>
                 <dt>Maps link</dt>
                 <dd>
-                  {s.maps_url ? (
-                    <a href={s.maps_url} target="_blank" rel="noreferrer">
-                      {s.maps_url}
-                    </a>
-                  ) : (
-                    "None"
-                  )}
+                  <a href={s.maps_url} target="_blank" rel="noreferrer">
+                    {s.maps_url}
+                  </a>
                 </dd>
                 <dt>Notes</dt>
                 <dd>{s.notes ?? "None"}</dd>

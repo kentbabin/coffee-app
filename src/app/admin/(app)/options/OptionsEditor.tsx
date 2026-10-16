@@ -15,6 +15,7 @@ export function OptionsEditor({ list, singular, options }: { list: OptionListKey
   const [newLabel, setNewLabel] = useState("");
   const [newRegion, setNewRegion] = useState("Bali");
   const isAreas = list === "areas";
+  const article = /^[aeiou]/i.test(singular) ? "an" : "a";
 
   function run(action: () => Promise<Result>, after?: () => void) {
     setError(undefined);
@@ -58,7 +59,7 @@ export function OptionsEditor({ list, singular, options }: { list: OptionListKey
       </ul>
       <form className="adm-section" onSubmit={onAdd} aria-labelledby="add-option">
         <h2 id="add-option" className="t-title">
-          Add a {singular}
+          Add {article} {singular}
         </h2>
         <div className="adm-grid-2">
           <Field id="new-label" label="Name" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} required />
@@ -104,9 +105,6 @@ function OptionRow({
       <div className="adm-option__fields">
         <input aria-label={`Name of ${option.label}`} value={label} onChange={(e) => setLabel(e.target.value)} />
         {isAreas ? <input aria-label={`Region of ${option.label}`} value={region} onChange={(e) => setRegion(e.target.value)} size={10} /> : null}
-        <span className="adm-option__slug" title="Used in links and filters. It never changes.">
-          {option.slug}
-        </span>
         {option.is_retired ? <StatusTag kind="hidden">Retired</StatusTag> : null}
       </div>
       <div className="adm-option__buttons">

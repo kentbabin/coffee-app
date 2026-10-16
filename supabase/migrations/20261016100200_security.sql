@@ -32,7 +32,7 @@ $$;
 -- ---------------------------------------------------------------------------
 
 grant select on
-  public.shops, public.roasters, public.shop_roasters, public.shop_preparations,
+  public.shops, public.shop_slug_redirects, public.roasters, public.shop_roasters, public.shop_preparations,
   public.areas, public.roast_levels, public.bean_origins, public.processing_methods, public.preparation_methods
 to anon, authenticated;
 
@@ -67,6 +67,9 @@ begin
   end loop;
 end;
 $$;
+
+-- Written only by the slug trigger; read by the shop page to redirect old links.
+create policy "Anyone reads" on public.shop_slug_redirects for select to anon, authenticated using (true);
 
 -- ---------------------------------------------------------------------------
 -- Admin-only tables.

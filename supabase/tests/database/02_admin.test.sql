@@ -2,14 +2,14 @@
 -- and approving submissions.
 begin;
 set search_path = public, extensions;
-select plan(29);
+select plan(35);
 
 insert into auth.users (id, email, aud, role)
 values ('00000000-0000-0000-0000-0000000000ad', 'admin@example.com', 'authenticated', 'authenticated');
 insert into admins (user_id, email) values ('00000000-0000-0000-0000-0000000000ad', 'admin@example.com');
 
-insert into shop_submissions (id, name, address)
-values ('00000000-0000-0000-0000-00000000500b', 'Submitted Cafe', 'Jl. Submitted 3');
+insert into shop_submissions (id, name, maps_url)
+values ('00000000-0000-0000-0000-00000000500b', 'Submitted Cafe', 'https://maps.app.goo.gl/abc');
 
 -- Helpers resolve option ids by slug; they run as the table owner.
 create function pg_temp.prep(p_slugs text[]) returns uuid[] language sql as $$
@@ -29,13 +29,13 @@ set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000ad", 
 select ok(is_admin(), 'a user with an admins row is an admin');
 
 -- ---------------------------------------------------------------------------
--- A2: add a maker with an existing and an inline roaster
+-- A2: add a brewer with an existing and an inline roaster
 -- ---------------------------------------------------------------------------
 create temp table saved on commit drop as
 select * from save_shop(
   jsonb_build_object(
-    'name', 'Test Maker Cafe', 'address', 'Jl. Test 10', 'area_id', pg_temp.area('ubud'),
-    'type', 'maker', 'roast_levels', '["light"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb,
+    'name', 'Test Brewer Cafe', 'address', 'Jl. Test 10', 'area_id', pg_temp.area('ubud'),
+    'type', 'brewer', 'roast_levels', '["light"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb,
     'website', 'https://example.com'
   ),
   pg_temp.prep('{espresso,manual}'),
@@ -43,9 +43,9 @@ select * from save_shop(
   '[{"name": "Inline Test Roasters", "city": "Bangli", "processing": ["natural"]}]'::jsonb
 );
 
-select is((select slug from saved), 'test-maker-cafe', 'a new shop gets a slug from its name');
+select is((select slug from saved), 'test-brewer-cafe', 'a new shop gets a slug from its name');
 select is((select preparations from saved), '{espresso,manual}'::text[], 'preparations are copied onto the shop row');
-select is((select cardinality(roaster_ids) from saved), 2, 'the maker lists both roasters');
+select is((select cardinality(roaster_ids) from saved), 2, 'the brewer lists both roasters');
 select ok(exists (select 1 from roasters where name = 'Inline Test Roasters' and city = 'Bangli'), 'an inline roaster is created');
 select is(
   (select created_by from saved), '00000000-0000-0000-0000-0000000000ad'::uuid,
@@ -69,12 +69,12 @@ select is(
 
 -- A second shop with a similar name in the same area is flagged.
 select results_eq(
-  $$ select name from find_similar_shops('Test Maker Caffe', pg_temp.area('ubud')) $$,
-  $$ values ('Test Maker Cafe') $$,
+  $$ select name from find_similar_shops('Test Brewer Caffe', pg_temp.area('ubud')) $$,
+  $$ values ('Test Brewer Cafe') $$,
   'find_similar_shops flags a near-duplicate in the same area'
 );
 select is_empty(
-  $$ select 1 from find_similar_shops('Test Maker Cafe', pg_temp.area('kuta')) $$,
+  $$ select 1 from find_similar_shops('Test Brewer Cafe', pg_temp.area('kuta')) $$,
   'find_similar_shops ignores other areas'
 );
 
@@ -92,8 +92,8 @@ create temp table edited on commit drop as
 select * from save_shop(
   jsonb_build_object(
     'id', (select id from saved),
-    'name', 'Test Maker Cafe', 'address', 'Jl. Test 11', 'area_id', pg_temp.area('ubud'),
-    'type', 'maker', 'roast_levels', '["light", "medium"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb,
+    'name', 'Test Brewer Cafe', 'address', 'Jl. Test 11', 'area_id', pg_temp.area('ubud'),
+    'type', 'brewer', 'roast_levels', '["light", "medium"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb,
     'website', 'https://example.com'
   ),
   pg_temp.prep('{espresso}'),
@@ -134,7 +134,7 @@ select throws_ok(
     $$ select save_shop(%L::jsonb, pg_temp.prep('{espresso}'), '{}', '[]', %L::timestamptz) $$,
     jsonb_build_object(
       'id', (select id from saved), 'name', 'Stale Edit', 'address', 'Jl. Test 11', 'area_id', pg_temp.area('ubud'),
-      'type', 'maker', 'roast_levels', '["light"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb
+      'type', 'brewer', 'roast_levels', '["light"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb
     ),
     now() - interval '1 day'
   ),
@@ -143,7 +143,30 @@ select throws_ok(
 );
 
 -- ---------------------------------------------------------------------------
--- Type roaster or both: linked roaster record
+-- Slugs: admins can change them; old links keep working.
+-- ---------------------------------------------------------------------------
+update shops set slug = 'Test Brewer Café!' where id = (select id from saved);
+select is((select slug from shops where id = (select id from saved)), 'test-brewer-cafe', 'a typed slug is normalised');
+update shops set slug = 'brewer-bar' where id = (select id from saved);
+select is((select slug from shops where id = (select id from saved)), 'brewer-bar', 'an admin can change the slug');
+select is(
+  (select shop_id from shop_slug_redirects where slug = 'test-brewer-cafe'), (select id from saved),
+  'the old slug redirects to the shop'
+);
+update shops set slug = '' where id = (select id from saved);
+select is((select slug from shops where id = (select id from saved)), 'brewer-bar', 'an empty slug keeps the current one');
+select throws_ok(
+  $$ update shops set slug = 'sample-roastery' where id = (select id from saved) $$,
+  '23505', null, 'a slug another shop uses is refused'
+);
+update shops set slug = 'test-brewer-cafe' where id = (select id from saved);
+select is_empty(
+  $$ select 1 from shop_slug_redirects where slug = 'test-brewer-cafe' $$,
+  'taking a slug back removes its redirect'
+);
+
+-- ---------------------------------------------------------------------------
+-- Shops that also roast: linked roaster record
 -- ---------------------------------------------------------------------------
 create temp table roaster_shop on commit drop as
 select * from save_shop(
@@ -187,7 +210,7 @@ select lives_ok(
   $$ select save_shop(
        jsonb_build_object(
          'name', 'Submitted Cafe', 'address', 'Jl. Submitted 3', 'area_id', pg_temp.area('canggu'),
-         'type', 'maker', 'roast_levels', '["medium"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb
+         'type', 'brewer', 'roast_levels', '["medium"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb
        ),
        pg_temp.prep('{espresso}'), '{}', '[]', null, '00000000-0000-0000-0000-00000000500b'
      ) $$,

@@ -32,13 +32,16 @@ create table public.areas (
 -- Shops
 -- ---------------------------------------------------------------------------
 
-create type public.shop_type as enum ('roaster', 'maker', 'both');
+-- Every shop brews coffee; some also roast. Roasters without a shop of their
+-- own live only in public.roasters.
+create type public.shop_type as enum ('brewer', 'both');
 
 create table public.shops (
   id uuid primary key default gen_random_uuid(),
   name text not null check (length(trim(name)) between 1 and 120),
-  -- Generated from the name on insert, then fixed so shared links keep working.
-  slug text not null unique,
+  -- Generated from the name unless the admin sets one. Admins can change it;
+  -- old slugs keep working through shop_slug_redirects.
+  slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   address text not null check (length(trim(address)) between 1 and 300),
   area_id uuid not null references public.areas (id),
   maps_url text check (maps_url ~* '^https?://'),
@@ -77,6 +80,15 @@ create index shops_preparations_idx on public.shops using gin (preparations);
 create index shops_processing_idx on public.shops using gin (processing);
 create index shops_search_idx on public.shops using gin (search);
 create index shops_name_trgm_idx on public.shops using gin (lower(name) extensions.gin_trgm_ops);
+
+-- When a shop's slug changes, its old links redirect to the new one.
+create table public.shop_slug_redirects (
+  slug text primary key,
+  shop_id uuid not null references public.shops (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create index shop_slug_redirects_shop_idx on public.shop_slug_redirects (shop_id);
 
 create table public.shop_preparations (
   shop_id uuid not null references public.shops (id) on delete cascade,
@@ -134,7 +146,11 @@ create table public.shop_submissions (
   name text not null check (length(trim(name)) between 1 and 120),
   address text check (length(address) <= 300),
   area_text text check (length(area_text) <= 120),
-  maps_url text check (maps_url ~* '^https?://'),
+  -- Required: it pins the shop down better than a typed address.
+  maps_url text not null check (
+    length(maps_url) <= 500
+    and maps_url ~* '^https?://((www\.)?google\.[a-z.]+/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl/maps)'
+  ),
   notes text check (length(notes) <= 1000),
   submitter_email text check (length(submitter_email) <= 254),
   status public.submission_status not null default 'pending',
@@ -144,8 +160,7 @@ create table public.shop_submissions (
   reviewed_by uuid references auth.users (id) on delete set null,
   reviewed_at timestamptz,
   shop_id uuid references public.shops (id) on delete set null,
-  created_at timestamptz not null default now(),
-  check (coalesce(trim(address), '') <> '' or coalesce(trim(area_text), '') <> '')
+  created_at timestamptz not null default now()
 );
 
 create index shop_submissions_pending_idx on public.shop_submissions (created_at) where status = 'pending';

@@ -9,7 +9,7 @@ async function open(page: Page, url: string) {
 async function addSubmission(name: string) {
   const { data, error } = await serviceClient()
     .from("shop_submissions")
-    .insert({ name, address: "Jl. Raya Ubud 9", maps_url: "https://www.google.com/maps/@-8.5069,115.2625,15z", notes: "Great natural process filter." })
+    .insert({ name, maps_url: "https://www.google.com/maps/@-8.5069,115.2625,15z", notes: "Great natural process filter." })
     .select("id")
     .single();
   if (error) throw error;
@@ -27,10 +27,11 @@ test("A6: approving a submission opens a pre-filled form and publishes the shop"
 
   await expect(page.getByRole("heading", { name: "Approve a submission" })).toBeVisible();
   await page.waitForLoadState("networkidle");
-  await expect(page.getByLabel("Name")).toHaveValue(name);
-  await expect(page.getByLabel("Latitude")).toHaveValue("-8.5069");
+  await expect(page.getByRole("textbox", { name: /^Name/ })).toHaveValue(name);
+  await expect(page.getByRole("textbox", { name: "Google Maps link" })).toHaveValue("https://www.google.com/maps/@-8.5069,115.2625,15z");
+  await page.getByRole("textbox", { name: "Address" }).fill("Jl. Raya Ubud 9");
 
-  await page.getByLabel("Area").selectOption({ label: "Ubud" });
+  await page.getByRole("combobox", { name: "Area" }).selectOption({ label: "Ubud" });
   await page.getByRole("group", { name: /^Roast levels/ }).getByRole("button", { name: "Light" }).click();
   await page.getByRole("group", { name: /^Preparation/ }).getByRole("button", { name: "Manual brew" }).click();
   await page.getByRole("group", { name: /^Bean origin/ }).getByRole("button", { name: "Local beans", exact: true }).click();
@@ -48,7 +49,7 @@ test("A6: rejecting a submission keeps it off the site", async ({ page }) => {
 
   await open(page, "/admin/submissions");
   await page.getByRole("button", { name: `Reject ${name}` }).click();
-  await page.getByLabel("Reason").fill("Closed permanently.");
+  await page.getByRole("textbox", { name: "Reason" }).fill("Closed permanently.");
   await page.getByRole("button", { name: "Reject submission" }).click();
 
   const reviewed = page.getByRole("region", { name: "Recently reviewed" }).getByRole("listitem").filter({ hasText: name });
@@ -61,7 +62,7 @@ test("A7: add, rename, retire and restore an option; values in use can't be dele
   await open(page, "/admin/options?list=preparation_methods");
   await expect(page.getByRole("link", { name: "Preparation" })).toHaveAttribute("aria-current", "page");
 
-  await page.getByRole("form", { name: "Add a preparation" }).getByLabel(/^Name/).fill(label);
+  await page.getByRole("form", { name: "Add a preparation" }).getByRole("textbox", { name: /^Name/ }).fill(label);
   await page.getByRole("button", { name: "Add preparation" }).click();
   const input = page.getByLabel(`Name of ${label}`);
   await expect(input).toBeVisible();
@@ -85,4 +86,28 @@ test("A7: add, rename, retire and restore an option; values in use can't be dele
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Delete Espresso" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Retire it instead" })).toBeVisible();
+});
+
+test("roasters without a shop are added and edited under Roasters", async ({ page }) => {
+  const name = `E2E Roasters ${Date.now().toString(36)}`;
+  await open(page, "/admin/roasters");
+  await page.getByRole("link", { name: "Add a roaster" }).click();
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("textbox", { name: /^Name/ }).fill(name);
+  await page.getByRole("textbox", { name: "City" }).fill("Bangli");
+  await page.getByRole("group", { name: "Processing" }).getByRole("button", { name: "Natural" }).click();
+  await page.getByRole("button", { name: "Save roaster" }).click();
+  await expect(page.getByRole("status")).toContainText(`Saved ${name}`);
+  await expect(page.getByRole("row", { name: new RegExp(name) })).toContainText("Bangli");
+
+  await page.getByRole("status").getByRole("link", { name }).click();
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("textbox", { name: "City" }).fill("Kintamani");
+  await page.getByRole("button", { name: "Save roaster" }).click();
+  await expect(page.getByRole("row", { name: new RegExp(name) })).toContainText("Kintamani");
+
+  // A roaster that is also a shop is renamed from its shop.
+  await page.getByRole("row", { name: /^Sample Roastery/ }).getByRole("link", { name: "Sample Roastery" }).first().click();
+  await expect(page.getByText("This roaster is also a shop")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /^Name/ })).toHaveAttribute("readonly", "");
 });

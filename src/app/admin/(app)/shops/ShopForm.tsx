@@ -3,19 +3,21 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Button, Chip, Field, Icon } from "@/components/ui";
-import { TYPE_LABEL } from "@/lib/labels";
-import { mapsPinUrl, parseMapsUrl } from "@/lib/maps";
+import { TYPE_LABEL, type ShopType } from "@/lib/labels";
+import { isGoogleMapsUrl } from "@/lib/maps";
 import type { Option, OptionLists } from "@/lib/options";
-import { shopFormSchema, type ShopFormValues } from "@/lib/shop-schema";
+import { shopFormSchema, slugify, type ShopFormValues } from "@/lib/shop-schema";
 import { findSimilarShops, saveShop } from "./actions";
 import { ChoiceGroup } from "./ChoiceGroup";
 
 export type RoasterOption = { id: string; name: string; city: string | null };
 export type ShopFormMode = { kind: "new"; submissionId?: string } | { kind: "edit"; id: string; updatedAt: string };
 type Similar = { id: string; name: string; is_hidden: boolean };
+
+const TYPE_ORDER: ShopType[] = ["brewer", "both"];
 
 /** Choices to offer: active values, plus any retired value the shop already has. */
 function choices(options: Option[], selected: string[], by: "slug" | "id") {
@@ -34,24 +36,30 @@ export function ShopForm({
   mode: ShopFormMode;
 }) {
   const router = useRouter();
+  // Next.js keeps pages you leave in the document, hidden; unique ids keep
+  // each label pointing at its own form's field.
+  const uid = useId();
+  const fid = (name: string) => `${uid}${name}`;
   const {
     register,
     control,
     handleSubmit,
     setValue,
     setError,
+    reset,
     formState: { errors },
   } = useForm<ShopFormValues>({ resolver: zodResolver(shopFormSchema), defaultValues: initial });
 
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
-  const [mapsNote, setMapsNote] = useState<string | null>(null);
   const [similar, setSimilar] = useState<Similar[]>([]);
+  // A new shop's link follows its name until the admin edits the link.
+  const [slugEdited, setSlugEdited] = useState(mode.kind === "edit" || initial.slug !== "");
   const errorRef = useRef<HTMLParagraphElement>(null);
 
-  const [name, areaId, type, lat, lng, newRoasters, roastLevels, processing, preparationIds] = useWatch({
+  const [name, areaId, type, slug, mapsUrl, newRoasters, roastLevels, processing, preparationIds] = useWatch({
     control,
-    name: ["name", "area_id", "type", "lat", "lng", "new_roasters", "roast_levels", "processing", "preparation_ids"],
+    name: ["name", "area_id", "type", "slug", "maps_url", "new_roasters", "roast_levels", "processing", "preparation_ids"],
   });
   const editingId = mode.kind === "edit" ? mode.id : undefined;
 
@@ -67,8 +75,6 @@ export function ShopForm({
     if (formError) errorRef.current?.focus();
   }, [formError]);
 
-  const pinOk = lat !== "" && lng !== "" && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
-
   const onSubmit = handleSubmit(
     (values) => {
       setFormError(null);
@@ -80,6 +86,11 @@ export function ShopForm({
           submissionId: mode.kind === "new" ? mode.submissionId : undefined,
         });
         if (result.ok) {
+          // The add page stays in the document; start it fresh for the next shop.
+          if (mode.kind === "new") {
+            reset(initial);
+            setSlugEdited(initial.slug !== "");
+          }
           router.push(`/admin?saved=${result.id}`);
           return;
         }
@@ -100,15 +111,35 @@ export function ShopForm({
         </p>
       ) : null}
 
-      <section className="adm-section" aria-labelledby="sec-shop">
-        <h2 id="sec-shop" className="t-title adm-section__title">
+      <section className="adm-section" aria-labelledby={fid("sec-shop")}>
+        <h2 id={fid("sec-shop")} className="t-title adm-section__title">
           Shop
         </h2>
-        <Field id="f-name" label="Name" required autoComplete="off" {...register("name")} error={errors.name?.message} />
-        <Field id="f-address" label="Address" required autoComplete="off" {...register("address")} error={errors.address?.message} />
+        <Field
+          id={fid("f-name")}
+          label="Name"
+          required
+          autoComplete="off"
+          {...register("name", { onChange: (e) => !slugEdited && setValue("slug", slugify(e.target.value)) })}
+          error={errors.name?.message}
+        />
+        <Field
+          id={fid("f-slug")}
+          label="Slug"
+          autoComplete="off"
+          spellCheck={false}
+          {...register("slug", { onChange: () => setSlugEdited(true) })}
+          error={errors.slug?.message}
+          hint={
+            mode.kind === "edit"
+              ? `The page is at /shops/${slug || "…"}. If you change it, old links still lead here.`
+              : `The page will be at /shops/${slug || "…"}. It follows the name unless you change it.`
+          }
+        />
+        <Field id={fid("f-address")} label="Address" required autoComplete="off" {...register("address")} error={errors.address?.message} />
         <Field
           as="select"
-          id="f-area"
+          id={fid("f-area")}
           label="Area"
           required
           {...register("area_id")}
@@ -133,107 +164,95 @@ export function ShopForm({
           </div>
         ) : null}
         <Field
-          id="f-maps"
+          id={fid("f-maps")}
           label="Google Maps link"
           type="url"
           inputMode="url"
           autoComplete="off"
-          placeholder="https://www.google.com/maps/place/…"
-          {...register("maps_url", {
-            onChange: (e) => {
-              const link = parseMapsUrl(e.target.value);
-              if (link.kind === "coords") {
-                setValue("lat", String(link.lat), { shouldValidate: true });
-                setValue("lng", String(link.lng), { shouldValidate: true });
-                setMapsNote("Pin read from the link. Check it with Preview on map.");
-              } else if (link.kind === "short") {
-                setMapsNote("Short links can't be read here. Open the link, copy the full address from the browser bar and paste it, or type the latitude and longitude below.");
-              } else {
-                setMapsNote(e.target.value.trim() ? "No pin found in this link. Type the latitude and longitude below." : null);
-              }
-            },
-          })}
+          placeholder="https://maps.app.goo.gl/…"
+          {...register("maps_url")}
           error={errors.maps_url?.message}
-          hint={mapsNote ?? "Paste the full link from Google Maps. The pin fills in by itself."}
+          hint={
+            mapsUrl && !isGoogleMapsUrl(mapsUrl)
+              ? "This doesn't look like a Google Maps link. The map on the shop page needs one."
+              : "Paste a share link or the full link from Google Maps. The map pin comes from it."
+          }
         />
-        <div className="adm-grid-2">
-          <Field id="f-lat" label="Latitude" inputMode="decimal" autoComplete="off" {...register("lat")} error={errors.lat?.message} />
-          <Field id="f-lng" label="Longitude" inputMode="decimal" autoComplete="off" {...register("lng")} error={errors.lng?.message} />
-        </div>
-        {pinOk ? (
+        {mapsUrl && isGoogleMapsUrl(mapsUrl) ? (
           <p>
-            <a href={mapsPinUrl(Number(lat), Number(lng))} target="_blank" rel="noreferrer" className="adm-inline-link">
-              Preview on map <Icon name="externalLink" size={14} />
+            <a href={mapsUrl} target="_blank" rel="noreferrer" className="adm-inline-link">
+              Check the link <Icon name="externalLink" size={14} />
             </a>
           </p>
         ) : null}
       </section>
 
-      <section className="adm-section" aria-labelledby="sec-type">
-        <h2 id="sec-type" className="t-title adm-section__title">
-          Roaster or maker
+      <section className="adm-section" aria-labelledby={fid("sec-type")}>
+        <h2 id={fid("sec-type")} className="t-title adm-section__title">
+          Roaster or brewer
         </h2>
         <Controller
           control={control}
           name="type"
           render={({ field, fieldState }) => (
             <ChoiceGroup
-              id="f-type"
+              id={fid("f-type")}
               label="Type"
               required
               single
               value={field.value}
               onChange={field.onChange}
               error={fieldState.error?.message}
-              hint="A roaster roasts beans; a maker serves coffee made from someone else's beans."
-              choices={Object.entries(TYPE_LABEL).map(([value, label]) => ({ value, label }))}
+              hint={
+                type === "both"
+                  ? "Roasts its own beans too. It also appears in the roasters list."
+                  : "Serves coffee made from other roasters' beans. A roaster without a shop belongs under Roasters."
+              }
+              choices={TYPE_ORDER.map((value) => ({ value, label: TYPE_LABEL[value] }))}
             />
           )}
         />
-        {type !== "roaster" ? (
-          <>
-            <Controller
-              control={control}
-              name="roaster_ids"
-              render={({ field }) => (
-                <ChoiceGroup
-                  id="f-roasters"
-                  label="Roasters whose beans they serve"
-                  value={field.value}
-                  onChange={field.onChange}
-                  hint={type === "maker" ? "Recommended for makers." : "Optional."}
-                  choices={roasters.map((r) => ({ value: r.id, label: r.city ? `${r.name}, ${r.city}` : r.name }))}
-                />
-              )}
+        {/* The roasters whose beans the shop serves. */}
+        <Controller
+          control={control}
+          name="roaster_ids"
+          render={({ field }) => (
+            <ChoiceGroup
+              id={fid("f-roasters")}
+              label={type === "both" ? "Other roasters whose beans they serve" : "Roasters whose beans they serve"}
+              value={field.value}
+              onChange={field.onChange}
+              hint={type === "both" ? "Optional." : "Recommended."}
+              choices={roasters.map((r) => ({ value: r.id, label: r.city ? `${r.name}, ${r.city}` : r.name }))}
             />
-            {newRoasters?.length ? (
-              <div className="ca-fgroup__chips" aria-label="Roasters to add">
-                {newRoasters.map((r, i) => (
-                  <Chip
-                    key={`${r.name}-${i}`}
-                    removeLabel={`new roaster ${r.name}`}
-                    onRemove={() =>
-                      setValue(
-                        "new_roasters",
-                        newRoasters.filter((_, j) => j !== i),
-                      )
-                    }
-                  >
-                    New: {r.name}
-                  </Chip>
-                ))}
-              </div>
-            ) : null}
-            <InlineRoaster
-              processing={options.processing_methods}
-              onAdd={(r) => setValue("new_roasters", [...(newRoasters ?? []), r])}
-            />
-          </>
+          )}
+        />
+        {newRoasters?.length ? (
+          <div className="ca-fgroup__chips" aria-label="Roasters to add">
+            {newRoasters.map((r, i) => (
+              <Chip
+                key={`${r.name}-${i}`}
+                removeLabel={`new roaster ${r.name}`}
+                onRemove={() =>
+                  setValue(
+                    "new_roasters",
+                    newRoasters.filter((_, j) => j !== i),
+                  )
+                }
+              >
+                New: {r.name}
+              </Chip>
+            ))}
+          </div>
         ) : null}
+        <InlineRoaster
+          processing={options.processing_methods}
+          onAdd={(r) => setValue("new_roasters", [...(newRoasters ?? []), r])}
+        />
       </section>
 
-      <section className="adm-section" aria-labelledby="sec-coffee">
-        <h2 id="sec-coffee" className="t-title adm-section__title">
+      <section className="adm-section" aria-labelledby={fid("sec-coffee")}>
+        <h2 id={fid("sec-coffee")} className="t-title adm-section__title">
           Coffee
         </h2>
         <Controller
@@ -241,7 +260,7 @@ export function ShopForm({
           name="roast_levels"
           render={({ field, fieldState }) => (
             <ChoiceGroup
-              id="f-roast"
+              id={fid("f-roast")}
               label="Roast levels"
               required
               value={field.value}
@@ -256,7 +275,7 @@ export function ShopForm({
           name="preparation_ids"
           render={({ field, fieldState }) => (
             <ChoiceGroup
-              id="f-preparations"
+              id={fid("f-preparations")}
               label="Preparation"
               required
               value={field.value}
@@ -271,7 +290,7 @@ export function ShopForm({
           name="bean_origin"
           render={({ field, fieldState }) => (
             <ChoiceGroup
-              id="f-origin"
+              id={fid("f-origin")}
               label="Bean origin"
               required
               single
@@ -287,7 +306,7 @@ export function ShopForm({
           name="processing"
           render={({ field, fieldState }) => (
             <ChoiceGroup
-              id="f-processing"
+              id={fid("f-processing")}
               label="Processing"
               required
               value={field.value}
@@ -299,21 +318,21 @@ export function ShopForm({
         />
       </section>
 
-      <section className="adm-section" aria-labelledby="sec-details">
-        <h2 id="sec-details" className="t-title adm-section__title">
+      <section className="adm-section" aria-labelledby={fid("sec-details")}>
+        <h2 id={fid("sec-details")} className="t-title adm-section__title">
           Details
         </h2>
         <Field
           as="textarea"
-          id="f-description"
+          id={fid("f-description")}
           label="Description"
           {...register("description")}
           error={errors.description?.message}
           hint="One to three sentences on why this shop matters."
         />
         <div className="adm-grid-2">
-          <Field id="f-website" label="Website" type="url" inputMode="url" placeholder="https://" {...register("website")} error={errors.website?.message} />
-          <Field id="f-instagram" label="Instagram" placeholder="@handle" autoComplete="off" {...register("instagram")} error={errors.instagram?.message} />
+          <Field id={fid("f-website")} label="Website" type="url" inputMode="url" placeholder="https://" {...register("website")} error={errors.website?.message} />
+          <Field id={fid("f-instagram")} label="Instagram" placeholder="@handle" autoComplete="off" {...register("instagram")} error={errors.instagram?.message} />
         </div>
       </section>
 
@@ -343,6 +362,8 @@ function InlineRoaster({ processing, onAdd }: { processing: Option[]; onAdd: (r:
   const [city, setCity] = useState("");
   const [chosen, setChosen] = useState<string[]>([]);
   const [error, setError] = useState<string>();
+  const uid = useId();
+  const fid = (name: string) => `${uid}${name}`;
 
   function add() {
     if (!name.trim()) {
@@ -377,10 +398,10 @@ function InlineRoaster({ processing, onAdd }: { processing: Option[]; onAdd: (r:
   return (
     <div className="adm-inline-roaster" role="group" aria-label="New roaster">
       <div className="adm-grid-2" onKeyDown={onKeyDown}>
-        <Field id="nr-name" label="Roaster name" required value={name} onChange={(e) => setName(e.target.value)} error={error} autoFocus />
-        <Field id="nr-city" label="City" value={city} onChange={(e) => setCity(e.target.value)} />
+        <Field id={fid("nr-name")} label="Roaster name" required value={name} onChange={(e) => setName(e.target.value)} error={error} autoFocus />
+        <Field id={fid("nr-city")} label="City" value={city} onChange={(e) => setCity(e.target.value)} />
       </div>
-      <ChoiceGroup id="nr-processing" label="Processing" value={chosen} onChange={setChosen} choices={choices(processing, [], "slug")} />
+      <ChoiceGroup id={fid("nr-processing")} label="Processing" value={chosen} onChange={setChosen} choices={choices(processing, [], "slug")} />
       <div className="adm-actions">
         <Button variant="secondary" onClick={add}>
           Add to this shop

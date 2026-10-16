@@ -27,11 +27,10 @@ export default async function EditShopPage({ params }: PageProps<"/admin/shops/[
   const prepId = new Map(options.preparation_methods.map((p) => [p.slug, p.id]));
   const initial: ShopFormValues = {
     name: shop.name,
+    slug: shop.slug,
     address: shop.address,
     area_id: shop.area_id,
     maps_url: shop.maps_url ?? "",
-    lat: shop.lat === null ? "" : String(shop.lat),
-    lng: shop.lng === null ? "" : String(shop.lng),
     type: shop.type,
     roaster_ids: shop.roaster_ids,
     new_roasters: [],

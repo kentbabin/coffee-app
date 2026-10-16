@@ -50,3 +50,11 @@ export function parseMapsUrl(input: string): MapsLink {
 export function mapsPinUrl(lat: number, lng: number) {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
+
+// Same rule as the shop_submissions.maps_url check in the database.
+const GOOGLE_MAPS = /^https?:\/\/((www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)/i;
+
+/** A link to Google Maps: full links from the address bar and short share links both count. */
+export function isGoogleMapsUrl(input: string) {
+  return GOOGLE_MAPS.test(input.trim());
+}

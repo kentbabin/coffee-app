@@ -145,13 +145,15 @@ begin
   if tg_op = 'INSERT' then
     if coalesce(new.slug, '') = '' then
       new.slug := public.unique_slug('public.shops', new.name, 'shop');
+    else
+      new.slug := public.slugify(new.slug);
     end if;
     new.created_at := now();
     new.updated_at := now();
     new.created_by := auth.uid();
     new.updated_by := auth.uid();
   else
-    new.slug := old.slug;
+    new.slug := coalesce(nullif(public.slugify(new.slug), ''), old.slug);
     new.created_at := old.created_at;
     new.created_by := old.created_by;
     if public.shop_tracked_fields(new) is distinct from public.shop_tracked_fields(old) then
@@ -182,6 +184,27 @@ $$;
 create trigger shops_before_write
   before insert or update on public.shops
   for each row execute function public.shops_before_write();
+
+-- A changed slug leaves a redirect behind; a slug taken by a shop stops redirecting.
+create function public.shops_slug_redirects()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'UPDATE' and new.slug is distinct from old.slug then
+    insert into public.shop_slug_redirects (slug, shop_id) values (old.slug, new.id)
+    on conflict (slug) do update set shop_id = excluded.shop_id, created_at = now();
+  end if;
+  delete from public.shop_slug_redirects where slug = new.slug;
+  return null;
+end;
+$$;
+
+create trigger shops_slug_redirects
+  after insert or update of slug on public.shops
+  for each row execute function public.shops_slug_redirects();
 
 -- ---------------------------------------------------------------------------
 -- Change history. Every edit to a shop, through any code path, lands here.

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
 import { ShopVote } from "@/components/ShopVote";
 import { Badge, Button, Chip, Icon, RoastScale } from "@/components/ui";
 import { brand } from "@/lib/brand";
 import { TYPE_LABEL } from "@/lib/labels";
 import { mapsPinUrl } from "@/lib/maps";
-import { getShop } from "@/lib/shops";
+import { getShop, getShopRedirect } from "@/lib/shops";
 
 export async function generateMetadata({ params }: PageProps<"/shops/[slug]">): Promise<Metadata> {
   const shop = await getShop((await params).slug);
@@ -36,9 +36,16 @@ export default function ShopPage({ params }: PageProps<"/shops/[slug]">) {
 }
 
 async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">) {
-  const shop = await getShop((await params).slug);
-  if (!shop) notFound();
+  const { slug } = await params;
+  const shop = await getShop(slug);
+  if (!shop) {
+    // The shop may have been renamed: old links follow it to its new slug.
+    const moved = await getShopRedirect(slug);
+    if (moved) permanentRedirect(`/shops/${moved}`);
+    notFound();
+  }
 
+  // Ids include the slug: Next.js keeps visited pages in the document, hidden.
   const pin = shop.lat !== null && shop.lng !== null ? { lat: Number(shop.lat), lng: Number(shop.lng) } : null;
   const mapsHref = shop.maps_url ?? (pin ? mapsPinUrl(pin.lat, pin.lng) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${shop.name} ${shop.address}`)}`);
 
@@ -67,8 +74,8 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
           {shop.description ? <p className="detail__lead">{shop.description}</p> : null}
         </div>
 
-        <section className="section" aria-labelledby="coffee">
-          <h2 id="coffee" className="t-title">
+        <section className="section" aria-labelledby={`coffee-${shop.slug}`}>
+          <h2 id={`coffee-${shop.slug}`} className="t-title">
             The coffee
           </h2>
           <dl className="panel attrs">
@@ -100,9 +107,9 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
         </section>
 
         {shop.roasters.length || shop.ownRoasterSlug ? (
-          <section className="section" aria-labelledby="roasters">
-            <h2 id="roasters" className="t-title">
-              {shop.type === "roaster" ? "Roaster" : "Beans from"}
+          <section className="section" aria-labelledby={`roasters-${shop.slug}`}>
+            <h2 id={`roasters-${shop.slug}`} className="t-title">
+              Beans from
             </h2>
             <ul className="links">
               {shop.ownRoasterSlug ? (
@@ -130,15 +137,14 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
         <Button href={mapsHref}>
           Open in Google Maps <Icon name="externalLink" size={16} />
         </Button>
-        {pin ? (
-          <iframe
-            className="map"
-            title={`Map showing ${shop.name}`}
-            src={`https://www.google.com/maps?q=${pin.lat},${pin.lng}&z=16&output=embed`}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        ) : null}
+        <iframe
+          className="map"
+          title={`Map showing ${shop.name}`}
+          // Without a pin, the map finds the shop by name and address.
+          src={`https://www.google.com/maps?q=${encodeURIComponent(pin ? `${pin.lat},${pin.lng}` : `${shop.name}, ${shop.address}`)}&z=16&output=embed`}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
         {shop.website || shop.instagram ? (
           <ul className="links">
             {shop.website ? (

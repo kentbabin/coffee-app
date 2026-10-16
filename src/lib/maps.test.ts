@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMapsUrl } from "./maps";
+import { isGoogleMapsUrl, parseMapsUrl } from "./maps";
 
 describe("parseMapsUrl", () => {
   it("prefers the place pin over the map centre", () => {
@@ -30,5 +30,18 @@ describe("parseMapsUrl", () => {
 
   it("rejects out-of-range numbers", () => {
     expect(parseMapsUrl("https://www.google.com/maps/@-98.1,115.2,15z")).toEqual({ kind: "none" });
+  });
+});
+
+describe("isGoogleMapsUrl", () => {
+  it("accepts full and short Google Maps links", () => {
+    for (const url of ["https://maps.app.goo.gl/AbC", "https://goo.gl/maps/AbC", "https://www.google.com/maps/place/X", "https://www.google.co.id/maps/@-8,115,15z", "https://maps.google.com/?q=x"]) {
+      expect(isGoogleMapsUrl(url)).toBe(true);
+    }
+  });
+  it("rejects other links", () => {
+    for (const url of ["https://example.com/maps", "https://www.google.com/search?q=cafe", "maps.app.goo.gl/AbC", ""]) {
+      expect(isGoogleMapsUrl(url)).toBe(false);
+    }
   });
 });

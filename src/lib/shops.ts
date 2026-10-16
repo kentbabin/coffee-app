@@ -84,6 +84,16 @@ export async function getShop(slug: string) {
   };
 }
 
+/** The current slug of a shop that used to be at this one, if it's visible. */
+export async function getShopRedirect(oldSlug: string) {
+  "use cache";
+  cacheTag("shops");
+  cacheLife("hours");
+  const { data } = await publicDb.from("shop_slug_redirects").select("shop:shops(slug)").eq("slug", oldSlug).maybeSingle();
+  // RLS leaves hidden shops out of the join, so they don't redirect.
+  return data?.shop?.slug ?? null;
+}
+
 /** P7: every roaster, alphabetical, with the number of visible shops serving them. */
 export async function getRoasters() {
   "use cache";
