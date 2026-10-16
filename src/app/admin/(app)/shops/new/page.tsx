@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Icon } from "@/components/ui";
 import { requireAdmin } from "@/lib/admin/session";
 import { parseMapsUrl } from "@/lib/maps";
-import { getOptionLists } from "@/lib/options";
+import { getOptionLists } from "@/lib/options-data";
 import { emptyShopForm, type ShopFormValues } from "@/lib/shop-schema";
 import { ShopForm } from "../ShopForm";
 

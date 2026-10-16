@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/ui";
 import { requireAdmin } from "@/lib/admin/session";
 import { TYPE_LABEL, type ShopType } from "@/lib/labels";
-import { getOptionLists, labeller } from "@/lib/options";
+import { getOptionLists } from "@/lib/options-data";
+import { labeller } from "@/lib/options";
 import type { Json } from "@/lib/supabase/database.types";
 import { getAdminShop } from "../shop";
 

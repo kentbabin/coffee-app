@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin/session";
-import { getOptionLists, OPTION_LISTS } from "@/lib/options";
+import { getOptionLists } from "@/lib/options-data";
+import { OPTION_LISTS } from "@/lib/options";
 import { OptionsEditor } from "./OptionsEditor";
 
 export const metadata: Metadata = { title: "Option lists" };

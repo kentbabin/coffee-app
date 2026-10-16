@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coffee App
 
-## Getting Started
+A mobile-first directory of specialty coffee shops and roasters in Bali, then the rest of Indonesia. Phase 1 is a curated directory entered by an admin, plus a light community layer: anonymous thumbs up/down and shop submissions that an admin reviews.
 
-First, run the development server:
+"Coffee App" is a working name. Every brand string lives in [src/lib/brand.ts](src/lib/brand.ts).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack
+
+- Next.js 16 (App Router, Cache Components) with React 19 and TypeScript
+- Supabase: Postgres, Auth (email one-time codes), row level security, Edge Functions
+- Styling from the Coffee App design system: tokens in [src/styles/tokens.css](src/styles/tokens.css), component CSS in [src/styles/components.css](src/styles/components.css), React components in [src/components/ui](src/components/ui)
+- React Hook Form and Zod for the admin form, Cloudflare Turnstile on the public submission form
+- Tests: pgTAP (database), Vitest (unit), Playwright (end to end)
+
+## Run it locally
+
+You need Node 24 and Docker Desktop (running).
+
+```sh
+npm install
+cp .env.example .env.local
+cp supabase/functions/.env.example supabase/functions/.env
+npm run db:start                         # local Supabase, with migrations and sample data
+npm run admin:add -- you@example.com     # invite yourself as an admin
+npm run dev                              # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sign in at <http://localhost:3000/admin>. Locally, sign-in emails go to Mailpit at <http://127.0.0.1:54324>, where you'll find the 6-digit code. Supabase Studio is at <http://127.0.0.1:54323>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` | Production build (needs the database running: some pages prerender) |
+| `npm run typecheck` | Generates route types, then runs TypeScript |
+| `npm run lint` | ESLint |
+| `npm test` | Unit tests (Vitest) |
+| `npm run db:test` | Database tests (pgTAP): RLS, change history, votes, search |
+| `npx playwright test` | End-to-end tests against the dev server and local Supabase |
+| `npm run db:reset` | Rebuild the local database from migrations and seed. Clears test data |
+| `npm run db:types` | Regenerate [database.types.ts](src/lib/supabase/database.types.ts) after a schema change |
+| `npm run admin:add -- email` | Invite an admin |
 
-## Learn More
+## How it fits together
 
-To learn more about Next.js, take a look at the following resources:
+- **Schema**: [supabase/migrations](supabase/migrations). Schema changes go through new migration files only.
+- **Visitors** read through the Data API as the anonymous role; RLS hides hidden shops. They write only through two Edge Functions, [vote](supabase/functions/vote/index.ts) and [submit-shop](supabase/functions/submit-shop/index.ts), which hash the caller's IP and call rate-limited database functions with the service role.
+- **Admins** are users with a row in `public.admins`, invited with `npm run admin:add`. Sign-up is off. Admin writes go through Server Actions acting as the signed-in admin, so RLS applies to them too.
+- **Change history** is written by a database trigger on `shops`, one revision per save, so no code path can edit a shop without leaving a record.
+- **Caching**: public reads are cached ([src/lib/shops.ts](src/lib/shops.ts)) and refreshed when an admin saves. Vote counts on lists may lag by up to a minute; the vote buttons fetch fresh counts for shops the visitor has voted on.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environments
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Local, staging and production each have their own Supabase project. For staging and production:
 
-## Deploy on Vercel
+1. Create the Supabase project and push the schema: `npx supabase link --project-ref <ref>` then `npx supabase db push`.
+2. In Authentication settings, keep the Email provider on and turn off "Allow new users to sign up". Set the magic link email template to show `{{ .Token }}` (see [supabase/templates/sign-in-code.html](supabase/templates/sign-in-code.html)), and set up SMTP for real email delivery.
+3. Deploy the functions: `npx supabase functions deploy vote --no-verify-jwt` and the same for `submit-shop`. Set their secrets: `npx supabase secrets set IP_HASH_SALT=<random> TURNSTILE_SECRET_KEY=<from Cloudflare>`.
+4. Enable `pg_cron` (the nightly vote refresh is scheduled by the migrations) and point-in-time recovery once the data matters.
+5. In Vercel, set `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`. The app never needs the secret key.
+6. Invite admins: put that project's URL and secret key in a local env file and run `npm run admin:add`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs every check above on each push once the repository is on GitHub.

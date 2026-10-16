@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui";
 import { requireAdmin } from "@/lib/admin/session";
 import { plural } from "@/lib/labels";
-import { getOptionLists } from "@/lib/options";
+import { getOptionLists } from "@/lib/options-data";
 import { ShopsTable } from "./ShopsTable";
 
 export const metadata: Metadata = { title: "Shops" };

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin/session";
-import { getOptionLists } from "@/lib/options";
+import { getOptionLists } from "@/lib/options-data";
 import type { ShopFormValues } from "@/lib/shop-schema";
 import { ShopForm } from "../ShopForm";
 import { getAdminShop } from "./shop";
