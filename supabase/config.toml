@@ -174,7 +174,7 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-# Off: admins are invitation only (scripts/add-admin.ts), and visitors never sign in.
+# Off: admins are invitation only (npm run admin:add), and visitors never sign in.
 enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
@@ -220,7 +220,9 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-enable_signup = false
+# Despite the name, this switches the email provider itself, which the admin
+# code sign-in needs. New sign-ups stay blocked by enable_signup under [auth].
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
