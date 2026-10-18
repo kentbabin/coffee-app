@@ -391,7 +391,7 @@ isOneToOne: true
       } },
 "search_shops":
 { Args: { "p_areas"?: (string)[],"p_bean_origin"?: string,"p_limit"?: number,"p_offset"?: number,"p_preparations"?: (string)[],"p_processing"?: (string)[],"p_query"?: string,"p_roast"?: (string)[],"p_type"?: Database["public"]['Enums']["shop_type"] }; Returns: {
-              "area_label": string,"area_slug": string,"bean_origin": string,"downvotes": number,"id": string,"name": string,"preparations": (string)[],"processing": (string)[],"roast_levels": (string)[],"score": number,"slug": string,"total_count": number,"type": Database["public"]['Enums']["shop_type"],"upvotes": number
+              "area_label": string,"area_slug": string,"bean_origin": string,"description": string,"downvotes": number,"id": string,"name": string,"preparations": (string)[],"processing": (string)[],"roast_levels": (string)[],"score": number,"slug": string,"total_count": number,"type": Database["public"]['Enums']["shop_type"],"upvotes": number
             }[]
                            },
 "shop_tracked_fields":

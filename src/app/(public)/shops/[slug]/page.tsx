@@ -12,7 +12,7 @@ import { getShop, getShopRedirect } from "@/lib/shops";
 export async function generateMetadata({ params }: PageProps<"/shops/[slug]">): Promise<Metadata> {
   const shop = await getShop((await params).slug);
   if (!shop) return { title: "Shop not found" };
-  const what = [TYPE_LABEL[shop.type], shop.card.roastLevels.join(", ") + " roast", shop.card.preparations.join(", ")].join(" · ");
+  const what = [TYPE_LABEL[shop.type], shop.coffee.roastLevels.join(", ") + " roast", shop.coffee.preparations.join(", ")].join(" · ");
   const description = shop.description ?? `${shop.name} in ${shop.areaLabel}, ${shop.region}: ${what}.`;
   return {
     title: `${shop.name}, ${shop.areaLabel}`,
@@ -82,13 +82,13 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
             <div>
               <dt>Roast</dt>
               <dd>
-                <RoastScale levels={shop.card.roastLevels} />
+                <RoastScale levels={shop.coffee.roastLevels} />
               </dd>
             </div>
             <div>
               <dt>Preparation</dt>
               <dd>
-                {shop.card.preparations.map((p) => (
+                {shop.coffee.preparations.map((p) => (
                   <Chip key={p} static>
                     {p}
                   </Chip>
@@ -97,11 +97,11 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
             </div>
             <div>
               <dt>Bean origin</dt>
-              <dd>{shop.card.beanOrigin}</dd>
+              <dd>{shop.coffee.beanOrigin}</dd>
             </div>
             <div>
               <dt>Processing</dt>
-              <dd>{shop.card.processing.join(", ")}</dd>
+              <dd>{shop.coffee.processing.join(", ")}</dd>
             </div>
           </dl>
         </section>

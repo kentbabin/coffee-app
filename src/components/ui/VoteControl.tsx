@@ -18,7 +18,7 @@ type VoteControlProps = {
   className?: string;
 };
 
-/** Thumbs up and down with counts. Controlled: the caller owns the counts (see ShopVote). */
+/** Thumbs up and down with counts, shown once above 0. Controlled: the caller owns the counts (see ShopVote). */
 export function VoteControl({ up, down, value, onVote, disabled, className }: VoteControlProps) {
   function button(v: 1 | -1, count: number) {
     const isUp = v === 1;
@@ -33,7 +33,8 @@ export function VoteControl({ up, down, value, onVote, disabled, className }: Vo
         onClick={() => onVote(on ? 0 : v)}
       >
         <Icon name={isUp ? "up" : "down"} fill={on} />
-        <span className="ca-vote__n">{count}</span>
+        {/* A row of zeros reads as empty: the count appears with the first vote. */}
+        {count > 0 ? <span className="ca-vote__n">{count}</span> : null}
       </button>
     );
   }

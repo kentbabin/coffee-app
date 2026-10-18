@@ -13,21 +13,17 @@ import { publicDb } from "@/lib/supabase/public";
 
 export type ShopSummary = { id: string; slug: string; up: number; down: number; card: ShopCardData };
 
-function card(
-  row: { name: string; type: ShopType; roast_levels: string[]; preparations: string[]; bean_origin: string; processing: string[] },
-  area: string,
-  options: OptionLists,
-): ShopCardData {
-  const prep = labeller(options.preparation_methods);
-  const processing = labeller(options.processing_methods);
+function card(row: { name: string; type: ShopType; description: string | null }, area: string): ShopCardData {
+  return { name: row.name, area, roaster: row.type === "both", description: row.description ?? null };
+}
+
+/** A shop's coffee attributes as display labels, for the shop page. */
+function coffee(row: { roast_levels: string[]; preparations: string[]; bean_origin: string; processing: string[] }, options: OptionLists) {
   return {
-    name: row.name,
-    area,
-    type: row.type,
     roastLevels: row.roast_levels,
-    preparations: row.preparations.map(prep),
+    preparations: row.preparations.map(labeller(options.preparation_methods)),
     beanOrigin: labeller(options.bean_origins)(row.bean_origin),
-    processing: row.processing.map(processing),
+    processing: row.processing.map(labeller(options.processing_methods)),
   };
 }
 
@@ -37,24 +33,21 @@ export async function searchShops(f: Filters): Promise<{ shops: ShopSummary[]; t
   cacheTag("shops");
   cacheLife({ stale: 60, revalidate: 60, expire: 3600 });
 
-  const [options, { data, error }] = await Promise.all([
-    getOptionLists(),
-    publicDb.rpc("search_shops", {
-      p_query: f.q || undefined,
-      p_roast: f.roast,
-      p_preparations: f.prep,
-      p_bean_origin: f.origin || undefined,
-      p_processing: f.processing,
-      p_type: f.type || undefined,
-      p_areas: f.area,
-      p_limit: PAGE_SIZE * f.page,
-      p_offset: 0,
-    }),
-  ]);
+  const { data, error } = await publicDb.rpc("search_shops", {
+    p_query: f.q || undefined,
+    p_roast: f.roast,
+    p_preparations: f.prep,
+    p_bean_origin: f.origin || undefined,
+    p_processing: f.processing,
+    p_type: f.type || undefined,
+    p_areas: f.area,
+    p_limit: PAGE_SIZE * f.page,
+    p_offset: 0,
+  });
   if (error) throw error;
   return {
     total: data[0]?.total_count ?? 0,
-    shops: data.map((r) => ({ id: r.id, slug: r.slug, up: r.upvotes, down: r.downvotes, card: card(r, r.area_label, options) })),
+    shops: data.map((r) => ({ id: r.id, slug: r.slug, up: r.upvotes, down: r.downvotes, card: card(r, r.area_label) })),
   };
 }
 
@@ -73,12 +66,11 @@ export async function getShop(slug: string) {
     shop.roaster_ids.length ? publicDb.from("roasters").select("id, slug, name, city").in("id", shop.roaster_ids).order("name") : Promise.resolve({ data: [] }),
     publicDb.from("roasters").select("slug").eq("shop_id", shop.id).maybeSingle(),
   ]);
-  const area = shop.area?.label ?? "";
   return {
     ...shop,
-    areaLabel: area,
+    areaLabel: shop.area?.label ?? "",
     region: shop.area?.region ?? "Bali",
-    card: card(shop, area, options),
+    coffee: coffee(shop, options),
     roasters: roasters.data ?? [],
     ownRoasterSlug: ownRoaster.data?.slug ?? null,
   };
@@ -124,7 +116,7 @@ export async function getRoaster(slug: string) {
   const { data: shops } = ids.length
     ? await publicDb
         .from("shops")
-        .select("id, slug, name, type, roast_levels, preparations, bean_origin, processing, upvotes, downvotes, area:areas(label)")
+        .select("id, slug, name, type, description, upvotes, downvotes, area:areas(label)")
         .in("id", ids)
         .order("score", { ascending: false })
     : { data: [] };
@@ -135,7 +127,7 @@ export async function getRoaster(slug: string) {
     processingLabels: (roaster.processing ?? []).map(processing),
     // RLS leaves hidden shops out, so a hidden own shop reads as none.
     ownShop: own.data,
-    shops: (shops ?? []).map((s) => ({ id: s.id, slug: s.slug, up: s.upvotes, down: s.downvotes, card: card(s, s.area?.label ?? "", options) })),
+    shops: (shops ?? []).map((s) => ({ id: s.id, slug: s.slug, up: s.upvotes, down: s.downvotes, card: card(s, s.area?.label ?? "") })),
   };
 }
 

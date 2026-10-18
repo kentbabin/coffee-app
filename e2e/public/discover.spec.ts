@@ -31,11 +31,8 @@ test("P2: filters combine, live in the URL, and the back button undoes them", as
   await expect(drawer).toBeHidden();
   await expect(page.getByRole("button", { name: "Filters (2)" })).toBeFocused();
 
-  // Light roast AND (local or both).
-  for (const card of await page.getByRole("article").all()) {
-    await expect(card.getByRole("img", { name: /Roast: .*light/ })).toBeVisible();
-    await expect(card).toContainText(/Local beans|Local and imported beans/);
-  }
+  // Cards no longer show coffee attributes; the database tests check the filter logic.
+  await expect(page.getByRole("article").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Remove filter Light (roast)" })).toBeVisible();
 
   // A shared link opens the same view.
@@ -148,7 +145,7 @@ test.describe("on a wide screen", () => {
     const panel = page.locator("#filters-panel");
     await panel.getByRole("group", { name: "Roaster or brewer" }).getByRole("button", { name: "Roaster and brewer" }).click();
     await expect(page).toHaveURL(/type=both/);
-    for (const card of await page.getByRole("article").all()) await expect(card).toContainText("Roaster and brewer");
+    for (const card of await page.getByRole("article").all()) await expect(card.locator(".ca-tag")).toHaveText("Roaster");
     // Area is in the row, not repeated in the panel.
     await expect(panel.getByRole("group", { name: "Area" })).toHaveCount(0);
 
