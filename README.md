@@ -44,7 +44,8 @@ Sign in at <http://localhost:3000/admin>. Locally, sign-in emails go to Mailpit 
 
 ## How it fits together
 
-- **Schema**: [supabase/migrations](supabase/migrations). Nothing is deployed yet, so these first migrations are still edited in place. Once staging exists, schema changes go through new migration files only.
+- **Schema**: [supabase/migrations](supabase/migrations). These migrations have run on the live database, so never edit them: every schema change goes in a new migration file (`npx supabase migration new <name>`), applied with `npx supabase db push`.
+- **Option lists** (areas, roast levels and so on) are data, edited at `/admin/options`. The seed fills them locally only. Two values have meaning in code: the roast slugs `light`, `medium` and `dark` draw the roast scale, and the bean origin slug `both` matches either single origin in the filters. A slug comes from the label when an option is added and never changes, so rename labels freely.
 - **Visitors** read through the Data API as the anonymous role; RLS hides hidden shops. They write only through two Edge Functions, [vote](supabase/functions/vote/index.ts) and [submit-shop](supabase/functions/submit-shop/index.ts), which hash the caller's IP and call rate-limited database functions with the service role.
 - **Admins** are users with a row in `public.admins`, invited with `npm run admin:add`. Sign-up is off. Admin writes go through Server Actions acting as the signed-in admin, so RLS applies to them too.
 - **Change history** is written by a database trigger on `shops`, one revision per save, so no code path can edit a shop without leaving a record.
@@ -52,7 +53,9 @@ Sign in at <http://localhost:3000/admin>. Locally, sign-in emails go to Mailpit 
 
 ## Environments
 
-Local, staging and production each have their own Supabase project. For staging and production:
+The app is deployed to Vercel at <https://coffee-app-five-gray.vercel.app/>, with its own hosted Supabase project.
+
+Local, staging and production each have their own Supabase project. To set up a hosted one:
 
 1. Create the Supabase project and push the schema: `npx supabase link --project-ref <ref>` then `npx supabase db push`.
 2. In Authentication settings, keep the Email provider on and turn off "Allow new users to sign up". Set the magic link email template to show `{{ .Token }}` (see [supabase/templates/sign-in-code.html](supabase/templates/sign-in-code.html)), and set up SMTP for real email delivery.
