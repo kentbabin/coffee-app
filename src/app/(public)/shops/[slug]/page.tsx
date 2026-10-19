@@ -6,7 +6,7 @@ import { ShopVote } from "@/components/ShopVote";
 import { Badge, Button, Chip, Icon, RoastScale } from "@/components/ui";
 import { brand } from "@/lib/brand";
 import { TYPE_LABEL } from "@/lib/labels";
-import { mapsPinUrl } from "@/lib/maps";
+import { shopMapsUrl } from "@/lib/maps";
 import { getShop, getShopRedirect } from "@/lib/shops";
 
 export async function generateMetadata({ params }: PageProps<"/shops/[slug]">): Promise<Metadata> {
@@ -47,7 +47,7 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
 
   // Ids include the slug: Next.js keeps visited pages in the document, hidden.
   const pin = shop.lat !== null && shop.lng !== null ? { lat: Number(shop.lat), lng: Number(shop.lng) } : null;
-  const mapsHref = shop.maps_url ?? (pin ? mapsPinUrl(pin.lat, pin.lng) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${shop.name} ${shop.address}`)}`);
+  const mapsHref = shopMapsUrl(shop);
 
   const jsonLd = {
     "@context": "https://schema.org",

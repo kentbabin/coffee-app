@@ -13,6 +13,10 @@ test("P1: shops are ranked by score, with a one-tap area filter", async ({ page 
   await expect(page.getByRole("heading", { name: "For Serious Coffee People" })).toBeVisible();
   const first = page.getByRole("article").first();
   await expect(first).toContainText("Sample Roastery");
+  // The card opens the shop in Google Maps directly, in a new tab.
+  const maps = first.getByRole("link", { name: "Open Sample Roastery in Google Maps" });
+  await expect(maps).toHaveAttribute("href", /google\.[a-z.]+\/maps|goo\.gl/);
+  await expect(maps).toHaveAttribute("target", "_blank");
 
   await page.locator(".filters-open").getByRole("button", { name: "Ubud" }).click();
   await expect(page).toHaveURL(/area=ubud/);

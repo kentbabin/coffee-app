@@ -51,6 +51,13 @@ export function mapsPinUrl(lat: number, lng: number) {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
+/** Where "open in Google Maps" goes for a shop: its own link, else its pin, else a search for its name and address. */
+export function shopMapsUrl(shop: { name: string; address: string; maps_url: string | null; lat?: number | null; lng?: number | null }) {
+  if (shop.maps_url) return shop.maps_url;
+  if (shop.lat != null && shop.lng != null) return mapsPinUrl(Number(shop.lat), Number(shop.lng));
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${shop.name} ${shop.address}`)}`;
+}
+
 // Same rule as the shop_submissions.maps_url check in the database.
 const GOOGLE_MAPS = /^https?:\/\/((www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)/i;
 

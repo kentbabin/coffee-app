@@ -2,6 +2,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import type { ShopCardData } from "@/components/ui";
 import { PAGE_SIZE, type Filters } from "@/lib/filters";
 import type { ShopType } from "@/lib/labels";
+import { shopMapsUrl } from "@/lib/maps";
 import { getOptionLists } from "@/lib/options-data";
 import { labeller, type OptionLists } from "@/lib/options";
 import { publicDb } from "@/lib/supabase/public";
@@ -13,8 +14,11 @@ import { publicDb } from "@/lib/supabase/public";
 
 export type ShopSummary = { id: string; slug: string; up: number; down: number; card: ShopCardData };
 
-function card(row: { name: string; type: ShopType; description: string | null }, area: string): ShopCardData {
-  return { name: row.name, area, roaster: row.type === "both", description: row.description ?? null };
+function card(
+  row: { name: string; type: ShopType; description: string | null; address: string; maps_url: string | null; lat?: number | null; lng?: number | null },
+  area: string,
+): ShopCardData {
+  return { name: row.name, area, roaster: row.type === "both", description: row.description ?? null, mapsUrl: shopMapsUrl(row) };
 }
 
 /** A shop's coffee attributes as display labels, for the shop page. */
@@ -116,7 +120,7 @@ export async function getRoaster(slug: string) {
   const { data: shops } = ids.length
     ? await publicDb
         .from("shops")
-        .select("id, slug, name, type, description, upvotes, downvotes, area:areas(label)")
+        .select("id, slug, name, type, description, address, maps_url, lat, lng, upvotes, downvotes, area:areas(label)")
         .in("id", ids)
         .order("score", { ascending: false })
     : { data: [] };

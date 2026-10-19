@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isGoogleMapsUrl, parseMapsUrl } from "./maps";
+import { isGoogleMapsUrl, parseMapsUrl, shopMapsUrl } from "./maps";
 
 describe("parseMapsUrl", () => {
   it("prefers the place pin over the map centre", () => {
@@ -43,5 +43,17 @@ describe("isGoogleMapsUrl", () => {
     for (const url of ["https://example.com/maps", "https://www.google.com/search?q=cafe", "maps.app.goo.gl/AbC", ""]) {
       expect(isGoogleMapsUrl(url)).toBe(false);
     }
+  });
+});
+
+describe("shopMapsUrl", () => {
+  const shop = { name: "Sample Roastery", address: "Jl. Batu Bolong 12", maps_url: null };
+
+  it("uses the shop's own link first", () => {
+    expect(shopMapsUrl({ ...shop, maps_url: "https://maps.app.goo.gl/AbC", lat: -8.65, lng: 115.13 })).toBe("https://maps.app.goo.gl/AbC");
+  });
+  it("falls back to the pin, then to a search for the name and address", () => {
+    expect(shopMapsUrl({ ...shop, lat: -8.65, lng: 115.13 })).toBe("https://www.google.com/maps/search/?api=1&query=-8.65,115.13");
+    expect(shopMapsUrl(shop)).toBe("https://www.google.com/maps/search/?api=1&query=Sample%20Roastery%20Jl.%20Batu%20Bolong%2012");
   });
 });
