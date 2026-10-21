@@ -57,10 +57,19 @@ export function ShopForm({
   const [slugEdited, setSlugEdited] = useState(mode.kind === "edit" || initial.slug !== "");
   const errorRef = useRef<HTMLParagraphElement>(null);
 
-  const [name, areaId, type, slug, mapsUrl, newRoasters, roastLevels, processing, preparationIds] = useWatch({
+  const [name, areaId, type, slug, mapsUrl, newRoasters, roastLevels, processing, preparationIds, ownRoasterId, roasterIds] = useWatch({
     control,
-    name: ["name", "area_id", "type", "slug", "maps_url", "new_roasters", "roast_levels", "processing", "preparation_ids"],
+    name: ["name", "area_id", "type", "slug", "maps_url", "new_roasters", "roast_levels", "processing", "preparation_ids", "own_roaster_id", "roaster_ids"],
   });
+  const roasterChoices = roasters.map((r) => ({ value: r.id, label: r.city ? `${r.name}, ${r.city}` : r.name }));
+  // A shop has at most one own roastery: picking one clears any other.
+  function setOwnRoaster(id: string) {
+    setValue("own_roaster_id", id);
+    if (id) {
+      setValue("roaster_ids", (roasterIds ?? []).filter((r) => r !== id));
+      setValue("new_roasters", (newRoasters ?? []).map((r) => ({ ...r, own: false })));
+    }
+  }
   const editingId = mode.kind === "edit" ? mode.id : undefined;
 
   // A2: warn about a shop with a similar name in the same area before saving.
@@ -205,14 +214,26 @@ export function ShopForm({
               error={fieldState.error?.message}
               hint={
                 type === "both"
-                  ? "Roasts its own beans too. It also appears in the roasters list."
-                  : "Serves coffee made from other roasters' beans. A roaster without a shop belongs under Roasters."
+                  ? "Roasts its own beans, in house or at its group's roastery."
+                  : "Serves coffee made from other roasters' beans."
               }
               choices={TYPE_ORDER.map((value) => ({ value, label: TYPE_LABEL[value] }))}
             />
           )}
         />
-        {/* The roasters whose beans the shop serves. */}
+        {/* The roastery that roasts for this shop. Saving never creates one from the shop. */}
+        {type === "both" ? (
+          <ChoiceGroup
+            id={fid("f-own-roaster")}
+            label="Their own roastery"
+            single
+            value={ownRoasterId ?? ""}
+            // Picking the chosen roastery again clears it.
+            onChange={(id) => setOwnRoaster(id === ownRoasterId ? "" : id)}
+            hint="Optional. The roaster that roasts for this shop, which can roast for other shops in the same group too. Add it below if it's new."
+            choices={roasterChoices}
+          />
+        ) : null}
         <Controller
           control={control}
           name="roaster_ids"
@@ -223,7 +244,7 @@ export function ShopForm({
               value={field.value}
               onChange={field.onChange}
               hint={type === "both" ? "Optional." : "Recommended."}
-              choices={roasters.map((r) => ({ value: r.id, label: r.city ? `${r.name}, ${r.city}` : r.name }))}
+              choices={type === "both" ? roasterChoices.filter((c) => c.value !== ownRoasterId) : roasterChoices}
             />
           )}
         />
@@ -241,13 +262,24 @@ export function ShopForm({
                 }
               >
                 New: {r.name}
+                {r.own && type === "both" ? " (their roastery)" : ""}
               </Chip>
             ))}
           </div>
         ) : null}
         <InlineRoaster
           processing={options.processing_methods}
-          onAdd={(r) => setValue("new_roasters", [...(newRoasters ?? []), r])}
+          canBeOwn={type === "both"}
+          onAdd={(r) => {
+            const others = newRoasters ?? [];
+            if (r.own) {
+              // The new roaster becomes their roastery, in place of any other.
+              setValue("own_roaster_id", "");
+              setValue("new_roasters", [...others.map((o) => ({ ...o, own: false })), r]);
+            } else {
+              setValue("new_roasters", [...others, r]);
+            }
+          }}
         />
       </section>
 
@@ -359,12 +391,21 @@ export function ShopForm({
   );
 }
 
-/** "Add roaster" without leaving the form: name, city and processing. */
-function InlineRoaster({ processing, onAdd }: { processing: Option[]; onAdd: (r: { name: string; city: string; processing: string[] }) => void }) {
+/** "Add roaster" without leaving the form: name, city and processing, and for a shop that roasts, whether it's their roastery. */
+function InlineRoaster({
+  processing,
+  canBeOwn,
+  onAdd,
+}: {
+  processing: Option[];
+  canBeOwn: boolean;
+  onAdd: (r: { name: string; city: string; processing: string[]; own: boolean }) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [chosen, setChosen] = useState<string[]>([]);
+  const [own, setOwn] = useState(false);
   const [error, setError] = useState<string>();
   const uid = useId();
   const fid = (name: string) => `${uid}${name}`;
@@ -374,10 +415,11 @@ function InlineRoaster({ processing, onAdd }: { processing: Option[]; onAdd: (r:
       setError("Enter the roaster's name.");
       return;
     }
-    onAdd({ name: name.trim(), city: city.trim(), processing: chosen });
+    onAdd({ name: name.trim(), city: city.trim(), processing: chosen, own: canBeOwn && own });
     setName("");
     setCity("");
     setChosen([]);
+    setOwn(false);
     setError(undefined);
     setOpen(false);
   }
@@ -406,6 +448,12 @@ function InlineRoaster({ processing, onAdd }: { processing: Option[]; onAdd: (r:
         <Field id={fid("nr-city")} label="City" value={city} onChange={(e) => setCity(e.target.value)} />
       </div>
       <ChoiceGroup id={fid("nr-processing")} label="Processing" value={chosen} onChange={setChosen} choices={choices(processing, [], "slug")} />
+      {canBeOwn ? (
+        <label className="adm-check">
+          <input type="checkbox" checked={own} onChange={(e) => setOwn(e.target.checked)} />
+          This is their own roastery
+        </label>
+      ) : null}
       <div className="adm-actions">
         <Button variant="secondary" onClick={add}>
           Add to this shop

@@ -82,18 +82,20 @@ export async function getShop(slug: string) {
   if (error) throw error;
   if (!shop) return null;
 
-  const [options, roasters, ownRoaster] = await Promise.all([
+  const [options, links] = await Promise.all([
     getOptionLists(),
-    shop.roaster_ids.length ? publicDb.from("roasters").select("id, slug, name, city").in("id", shop.roaster_ids).order("name") : Promise.resolve({ data: [] }),
-    publicDb.from("roasters").select("slug").eq("shop_id", shop.id).maybeSingle(),
+    publicDb.from("shop_roasters").select("is_own, roaster:roasters(id, slug, name, city)").eq("shop_id", shop.id),
   ]);
+  // Their own roastery first, then the others by name.
+  const roasters = (links.data ?? [])
+    .flatMap((l) => (l.roaster ? [{ ...l.roaster, own: l.is_own }] : []))
+    .sort((a, b) => Number(b.own) - Number(a.own) || a.name.localeCompare(b.name));
   return {
     ...shop,
     areaLabel: shop.area?.label ?? "",
     region: shop.area?.region ?? "Bali",
     coffee: coffee(shop, options),
-    roasters: roasters.data ?? [],
-    ownRoasterSlug: ownRoaster.data?.slug ?? null,
+    roasters,
   };
 }
 
@@ -118,7 +120,7 @@ export async function getRoasters() {
   return data.map((r) => ({ ...r, processingLabels: (r.processing ?? []).map(processing) }));
 }
 
-/** P7: one roaster, the visible shops serving its beans, and its own shop if it has one. */
+/** P7: one roaster and the visible shops serving its beans: its own shops (it is their roastery), then the rest. */
 export async function getRoaster(slug: string) {
   "use cache";
   cacheTag("roasters", "shops");
@@ -128,12 +130,12 @@ export async function getRoaster(slug: string) {
   if (error) throw error;
   if (!roaster?.id) return null;
 
-  const [options, links, own] = await Promise.all([
+  const [options, links] = await Promise.all([
     getOptionLists(),
-    publicDb.from("shop_roasters").select("shop_id").eq("roaster_id", roaster.id),
-    roaster.shop_id ? publicDb.from("shops").select("slug, name").eq("id", roaster.shop_id).maybeSingle() : Promise.resolve({ data: null }),
+    publicDb.from("shop_roasters").select("shop_id, is_own").eq("roaster_id", roaster.id),
   ]);
   const ids = (links.data ?? []).map((l) => l.shop_id);
+  const own = new Set((links.data ?? []).filter((l) => l.is_own).map((l) => l.shop_id));
   const { data: shops } = ids.length
     ? await publicDb
         .from("shops")
@@ -143,12 +145,13 @@ export async function getRoaster(slug: string) {
     : { data: [] };
 
   const processing = labeller(options.processing_methods);
+  // RLS leaves hidden shops out of both lists.
+  const summaries = (shops ?? []).map((s) => ({ id: s.id, slug: s.slug, up: s.upvotes, down: s.downvotes, card: card(s, s.area?.label ?? "") }));
   return {
     ...roaster,
     processingLabels: (roaster.processing ?? []).map(processing),
-    // RLS leaves hidden shops out, so a hidden own shop reads as none.
-    ownShop: own.data,
-    shops: (shops ?? []).map((s) => ({ id: s.id, slug: s.slug, up: s.upvotes, down: s.downvotes, card: card(s, s.area?.label ?? "") })),
+    ownShops: summaries.filter((s) => own.has(s.id)),
+    shops: summaries.filter((s) => !own.has(s.id)),
   };
 }
 

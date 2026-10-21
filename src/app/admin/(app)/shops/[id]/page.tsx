@@ -16,13 +16,15 @@ export async function generateMetadata({ params }: PageProps<"/admin/shops/[id]"
 export default async function EditShopPage({ params }: PageProps<"/admin/shops/[id]">) {
   const { id } = await params;
   const { supabase } = await requireAdmin();
-  const [shop, options, roasters] = await Promise.all([
+  const [shop, options, roasters, links] = await Promise.all([
     getAdminShop(id),
     getOptionLists(),
-    // The shop's own linked roaster record is not something it "serves".
-    supabase.from("roasters").select("id, name, city, shop_id").order("name"),
+    supabase.from("roasters").select("id, name, city").order("name"),
+    supabase.from("shop_roasters").select("roaster_id, is_own").eq("shop_id", id),
   ]);
   if (roasters.error) throw roasters.error;
+  if (links.error) throw links.error;
+  const own = links.data.find((l) => l.is_own)?.roaster_id ?? "";
 
   const prepId = new Map(options.preparation_methods.map((p) => [p.slug, p.id]));
   const initial: ShopFormValues = {
@@ -32,7 +34,8 @@ export default async function EditShopPage({ params }: PageProps<"/admin/shops/[
     area_id: shop.area_id,
     maps_url: shop.maps_url ?? "",
     type: shop.type,
-    roaster_ids: shop.roaster_ids,
+    own_roaster_id: own,
+    roaster_ids: links.data.filter((l) => !l.is_own).map((l) => l.roaster_id),
     new_roasters: [],
     roast_levels: shop.roast_levels,
     preparation_ids: shop.preparations.map((slug) => prepId.get(slug)).filter((v): v is string => Boolean(v)),
@@ -50,7 +53,7 @@ export default async function EditShopPage({ params }: PageProps<"/admin/shops/[
       // Remount after each save so the form holds the saved values and timestamp.
       key={shop.updated_at}
       options={options}
-      roasters={roasters.data.filter((r) => r.shop_id !== shop.id)}
+      roasters={roasters.data}
       initial={initial}
       mode={{ kind: "edit", id: shop.id, updatedAt: shop.updated_at }}
     />

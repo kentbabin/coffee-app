@@ -56,9 +56,14 @@ begin
   insert into public.shop_preparations (shop_id, preparation_id)
   select v_shop.id, pm.id from public.preparation_methods pm where pm.slug = any (p_preparations);
 
+  -- A sample shop that roasts gets a roastery of the same name, marked as its own.
   if p_type = 'both' then
-    insert into public.roasters (name, city, processing, shop_id)
-    select v_shop.name, a.label, p_processing, v_shop.id from public.areas a where a.id = v_shop.area_id;
+    with r as (
+      insert into public.roasters (name, city, processing)
+      select v_shop.name, a.label, p_processing from public.areas a where a.id = v_shop.area_id
+      returning id
+    )
+    insert into public.shop_roasters (shop_id, roaster_id, is_own) select v_shop.id, r.id, true from r;
   end if;
 
   insert into public.shop_roasters (shop_id, roaster_id)

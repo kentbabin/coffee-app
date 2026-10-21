@@ -38,11 +38,6 @@ async function RoasterDetail({ params }: Pick<PageProps<"/roasters/[slug]">, "pa
       <div className="detail__head">
         <h1 className="t-display-lg">{roaster.name}</h1>
         <p className="t-body t-muted">{[roaster.city, roaster.processingLabels.join(", ")].filter(Boolean).join(" · ")}</p>
-        {roaster.ownShop ? (
-          <p>
-            Their own shop: <Link href={`/shops/${roaster.ownShop.slug}`}>{roaster.ownShop.name}</Link>
-          </p>
-        ) : null}
         {roaster.website ? (
           <p>
             <a href={roaster.website} rel="noopener nofollow" target="_blank">
@@ -51,20 +46,35 @@ async function RoasterDetail({ params }: Pick<PageProps<"/roasters/[slug]">, "pa
           </p>
         ) : null}
       </div>
-      <section className="section" aria-labelledby={`served-${roaster.slug}`}>
-        <h2 id={`served-${roaster.slug}`} className="t-title">
-          Shops serving their beans
-        </h2>
-        {roaster.shops.length ? (
+      {/* Shops this roaster roasts for: a group's own shops. */}
+      {roaster.ownShops.length ? (
+        <section className="section" aria-labelledby={`own-${roaster.slug}`}>
+          <h2 id={`own-${roaster.slug}`} className="t-title">
+            Their shops
+          </h2>
           <div className="grid">
-            {roaster.shops.map((s) => (
+            {roaster.ownShops.map((s) => (
               <ShopCard key={s.id} shop={s.card} href={`/shops/${s.slug}`} vote={<ShopVote shopId={s.id} up={s.up} down={s.down} name={s.card.name} />} />
             ))}
           </div>
-        ) : (
-          <p className="t-body t-muted">No shops list these beans yet.</p>
-        )}
-      </section>
+        </section>
+      ) : null}
+      {roaster.shops.length || !roaster.ownShops.length ? (
+        <section className="section" aria-labelledby={`served-${roaster.slug}`}>
+          <h2 id={`served-${roaster.slug}`} className="t-title">
+            {roaster.ownShops.length ? "Also served at" : "Shops serving their beans"}
+          </h2>
+          {roaster.shops.length ? (
+            <div className="grid">
+              {roaster.shops.map((s) => (
+                <ShopCard key={s.id} shop={s.card} href={`/shops/${s.slug}`} vote={<ShopVote shopId={s.id} up={s.up} down={s.down} name={s.card.name} />} />
+              ))}
+            </div>
+          ) : (
+            <p className="t-body t-muted">No shops list these beans yet.</p>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -13,6 +13,8 @@ export const newRoasterSchema = z.object({
   name: z.string().trim().min(1, "Enter the roaster's name.").max(120),
   city: z.string().trim().max(80),
   processing: z.array(z.string()),
+  /** The shop's own roastery (a shop of type both only). */
+  own: z.boolean(),
 });
 
 export const shopFormSchema = z
@@ -28,6 +30,9 @@ export const shopFormSchema = z
     area_id: z.string().min(1, "Choose an area."),
     maps_url: optionalUrl,
     type: z.enum(["brewer", "both"], { error: "Choose whether the shop also roasts its own beans." }),
+    // Optional: the existing roaster that roasts for this shop, when it is of type both.
+    own_roaster_id: z.string(),
+    // Other roasters whose beans the shop serves.
     roaster_ids: z.array(z.string()),
     new_roasters: z.array(newRoasterSchema),
     roast_levels: z.array(z.string()).min(1, "Choose at least one roast level."),
@@ -50,6 +55,7 @@ export const emptyShopForm: ShopFormValues = {
   area_id: "",
   maps_url: "",
   type: "brewer",
+  own_roaster_id: "",
   roaster_ids: [],
   new_roasters: [],
   roast_levels: [],
@@ -82,7 +88,7 @@ export function instagramHandle(value: string) {
     .replace(/\/.*$/, "");
 }
 
-/** The admin roaster form. A roaster linked to a shop takes its name and processing from the shop. */
+/** The admin roaster form. */
 export const roasterFormSchema = z.object({
   name: z.string().trim().min(1, "Enter the roaster's name.").max(120, "Keep the name under 120 characters."),
   city: z.string().trim().max(80),

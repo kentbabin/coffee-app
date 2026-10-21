@@ -2,7 +2,7 @@
 -- and approving submissions.
 begin;
 set search_path = public, extensions;
-select plan(37);
+select plan(41);
 
 insert into auth.users (id, email, aud, role)
 values ('00000000-0000-0000-0000-0000000000ad', 'admin@example.com', 'authenticated', 'authenticated');
@@ -168,7 +168,8 @@ select is_empty(
 );
 
 -- ---------------------------------------------------------------------------
--- Shops that also roast: linked roaster record
+-- Shops that also roast: no roaster is made from the shop. It can name its
+-- own roastery, which can be the roastery of other shops in its group too.
 -- ---------------------------------------------------------------------------
 create temp table roaster_shop on commit drop as
 select * from save_shop(
@@ -176,12 +177,39 @@ select * from save_shop(
     'name', 'Test Roaster Shop', 'address', 'Jl. Test 12', 'area_id', pg_temp.area('sanur'),
     'type', 'both', 'roast_levels', '["dark"]'::jsonb, 'bean_origin', 'foreign', 'processing', '["natural"]'::jsonb
   ),
-  pg_temp.prep('{espresso}')
+  pg_temp.prep('{espresso}'),
+  array[pg_temp.roaster('Highland Sample Roasters')],
+  '[{"name": "Test Group Roastery", "city": "Gianyar", "processing": ["natural"], "own": true}]'::jsonb
+);
+select is_empty(
+  $$ select 1 from roasters where name = 'Test Roaster Shop' $$,
+  'saving a shop that roasts creates no roaster named after it'
 );
 select results_eq(
-  $$ select name, city, processing from roasters where shop_id = (select id from roaster_shop) $$,
-  $$ values ('Test Roaster Shop'::text, 'Sanur'::text, '{natural}'::text[]) $$,
-  'saving a shop of type both creates its linked roaster'
+  $$ select r.name, sr.is_own from shop_roasters sr join roasters r on r.id = sr.roaster_id
+     where sr.shop_id = (select id from roaster_shop) order by r.name $$,
+  $$ values ('Highland Sample Roasters'::text, false), ('Test Group Roastery'::text, true) $$,
+  'a shop that roasts links its own roastery, added inline, beside the roasters it also serves'
+);
+select lives_ok(
+  $$ select save_shop(
+       jsonb_build_object(
+         'name', 'Test Group Second Shop', 'address', 'Jl. Test 13', 'area_id', pg_temp.area('ubud'),
+         'type', 'both', 'roast_levels', '["light"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb,
+         'own_roaster_id', pg_temp.roaster('Test Group Roastery')
+       ),
+       pg_temp.prep('{espresso}')
+     ) $$,
+  'a second shop in the group names the same roastery'
+);
+select is(
+  (select count(*)::integer from shop_roasters where roaster_id = pg_temp.roaster('Test Group Roastery') and is_own),
+  2,
+  'one roastery is the own roastery of every shop in its group'
+);
+select is_empty(
+  $$ select 1 from shop_roasters where shop_id = (select id from saved) and is_own $$,
+  'a brewer has no own roastery'
 );
 
 -- ---------------------------------------------------------------------------

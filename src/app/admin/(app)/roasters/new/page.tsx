@@ -21,7 +21,7 @@ export default async function NewRoasterPage() {
       <div className="adm-page-head">
         <h1 className="t-heading">Add a roaster</h1>
       </div>
-      <p className="t-body t-muted adm-count">For a roaster without a shop of its own. A shop that roasts is added as a shop, as Roaster and brewer.</p>
+      <p className="t-body t-muted adm-count">Add a roaster or a group&apos;s roastery under its own name. Link it to shops from each shop&apos;s form.</p>
       <RoasterForm initial={{ name: "", city: "", processing: [], website: "" }} processing={options.processing_methods} />
     </div>
   );

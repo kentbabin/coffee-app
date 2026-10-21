@@ -112,21 +112,20 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
           </dl>
         </section>
 
-        {shop.roasters.length || shop.ownRoasterSlug ? (
+        {shop.roasters.length ? (
           <section className="section" aria-labelledby={`roasters-${shop.slug}`}>
             <h2 id={`roasters-${shop.slug}`} className="t-title">
               Beans from
             </h2>
             <ul className="links">
-              {shop.ownRoasterSlug ? (
-                <li>
-                  <Link href={`/roasters/${shop.ownRoasterSlug}`}>{shop.name}</Link> <span className="t-body-sm t-muted">roasts its own beans</span>
-                </li>
-              ) : null}
               {shop.roasters.map((r) => (
                 <li key={r.id}>
                   <Link href={`/roasters/${r.slug}`}>{r.name}</Link>
-                  {r.city ? <span className="t-body-sm t-muted">, {r.city}</span> : null}
+                  {r.own ? (
+                    <span className="t-body-sm t-muted">, their own roastery</span>
+                  ) : r.city ? (
+                    <span className="t-body-sm t-muted">, {r.city}</span>
+                  ) : null}
                 </li>
               ))}
             </ul>

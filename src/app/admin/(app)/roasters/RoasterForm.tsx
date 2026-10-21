@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -15,13 +14,10 @@ export function RoasterForm({
   initial,
   processing,
   id,
-  linkedShop,
 }: {
   initial: RoasterFormValues;
   processing: Option[];
   id?: string;
-  /** Set when the roaster is also a shop: its name and processing are edited there. */
-  linkedShop?: { id: string; name: string } | null;
 }) {
   const router = useRouter();
   // Unique per form: Next.js keeps left pages in the document, hidden.
@@ -53,7 +49,6 @@ export function RoasterForm({
     () => setFormError("Some fields need attention. Check the messages below each one."),
   );
 
-  const linked = Boolean(linkedShop);
   return (
     <form className="adm-form" onSubmit={onSubmit} noValidate>
       {formError ? (
@@ -61,30 +56,21 @@ export function RoasterForm({
           {formError}
         </p>
       ) : null}
-      {linkedShop ? (
-        <p className="adm-notice">
-          This roaster is also a shop, <Link href={`/admin/shops/${linkedShop.id}`}>{linkedShop.name}</Link>. Its name and processing come from the shop, so change them there.
-        </p>
-      ) : null}
       <section className="adm-section">
-        <Field id={fid("r-name")} label="Name" required autoComplete="off" readOnly={linked} {...register("name")} error={errors.name?.message} />
+        <Field id={fid("r-name")} label="Name" required autoComplete="off" {...register("name")} error={errors.name?.message} />
         <Field id={fid("r-city")} label="City" autoComplete="off" {...register("city")} error={errors.city?.message} hint="Where they roast, for example Kintamani." />
         <Controller
           control={control}
           name="processing"
-          render={({ field }) =>
-            linked ? (
-              <p className="t-body-sm t-muted">Processing: {processing.filter((p) => field.value.includes(p.slug)).map((p) => p.label).join(", ") || "None"}</p>
-            ) : (
-              <ChoiceGroup
-                id={fid("r-processing")}
-                label="Processing"
-                value={field.value}
-                onChange={field.onChange}
-                choices={processing.filter((o) => !o.is_retired || field.value.includes(o.slug)).map((o) => ({ value: o.slug, label: o.label }))}
-              />
-            )
-          }
+          render={({ field }) => (
+            <ChoiceGroup
+              id={fid("r-processing")}
+              label="Processing"
+              value={field.value}
+              onChange={field.onChange}
+              choices={processing.filter((o) => !o.is_retired || field.value.includes(o.slug)).map((o) => ({ value: o.slug, label: o.label }))}
+            />
+          )}
         />
         <Field id={fid("r-website")} label="Website" type="url" inputMode="url" placeholder="https://" {...register("website")} error={errors.website?.message} />
       </section>

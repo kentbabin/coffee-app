@@ -13,20 +13,23 @@ export default async function AdminRoastersPage({ searchParams }: PageProps<"/ad
   const { supabase } = await requireAdmin();
   const [{ saved }, roasters, links, shops] = await Promise.all([
     searchParams,
-    supabase.from("roasters").select("id, slug, name, city, shop_id").order("name"),
-    supabase.from("shop_roasters").select("roaster_id"),
-    supabase.from("shops").select("id, name"),
+    supabase.from("roasters").select("id, slug, name, city").order("name"),
+    supabase.from("shop_roasters").select("roaster_id, shop_id, is_own"),
+    supabase.from("shops").select("id, name").order("name"),
   ]);
   if (roasters.error) throw roasters.error;
 
   const served = new Map<string, number>();
-  for (const l of links.data ?? []) served.set(l.roaster_id, (served.get(l.roaster_id) ?? 0) + 1);
-  const shopName = new Map((shops.data ?? []).map((s) => [s.id, s.name]));
+  const own = new Map<string, Set<string>>();
+  for (const l of links.data ?? []) {
+    served.set(l.roaster_id, (served.get(l.roaster_id) ?? 0) + 1);
+    if (l.is_own) own.set(l.roaster_id, (own.get(l.roaster_id) ?? new Set()).add(l.shop_id));
+  }
   const rows: RoasterRow[] = roasters.data.map((r) => ({
     id: r.id,
     name: r.name,
     city: r.city ?? "",
-    ownShop: r.shop_id ? { id: r.shop_id, name: shopName.get(r.shop_id) ?? "" } : null,
+    ownShops: (shops.data ?? []).filter((s) => own.get(r.id)?.has(s.id)),
     served: served.get(r.id) ?? 0,
   }));
   const savedRow = typeof saved === "string" ? rows.find((r) => r.id === saved) : undefined;
@@ -38,7 +41,7 @@ export default async function AdminRoastersPage({ searchParams }: PageProps<"/ad
         <Button href="/admin/roasters/new">Add a roaster</Button>
       </div>
       <p className="t-body t-muted">
-        Every roaster on the site. Roasters with a shop of their own are added and renamed from that shop; the rest live here.
+        Every roaster on the site. Shops link to the roasters whose beans they serve, and a shop that roasts can name one as its own roastery.
       </p>
       {savedRow ? (
         <p className="adm-notice" role="status">

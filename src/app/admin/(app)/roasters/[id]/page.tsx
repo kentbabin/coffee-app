@@ -15,9 +15,13 @@ export default async function EditRoasterPage({ params }: PageProps<"/admin/roas
   const { id } = await params;
   const { supabase } = await requireAdmin();
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const [{ data: roaster }, options] = await Promise.all([supabase.from("roasters").select("*").eq("id", id).maybeSingle(), getOptionLists()]);
+  const [{ data: roaster }, options, own] = await Promise.all([
+    supabase.from("roasters").select("*").eq("id", id).maybeSingle(),
+    getOptionLists(),
+    supabase.from("shop_roasters").select("shop:shops(id, name)").eq("roaster_id", id).eq("is_own", true),
+  ]);
   if (!roaster) notFound();
-  const { data: shop } = roaster.shop_id ? await supabase.from("shops").select("id, name").eq("id", roaster.shop_id).maybeSingle() : { data: null };
+  const ownShops = (own.data ?? []).flatMap((l) => (l.shop ? [l.shop] : [])).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div>
@@ -30,9 +34,20 @@ export default async function EditRoasterPage({ params }: PageProps<"/admin/roas
           View public page <Icon name="externalLink" size={14} />
         </Link>
       </div>
+      {ownShops.length ? (
+        <p className="adm-notice">
+          Own roastery of{" "}
+          {ownShops.map((s, i) => (
+            <span key={s.id}>
+              {i ? ", " : null}
+              <Link href={`/admin/shops/${s.id}`}>{s.name}</Link>
+            </span>
+          ))}
+          . Change that from each shop&apos;s form.
+        </p>
+      ) : null}
       <RoasterForm
         id={roaster.id}
-        linkedShop={shop}
         processing={options.processing_methods}
         initial={{ name: roaster.name, city: roaster.city ?? "", processing: roaster.processing, website: roaster.website ?? "" }}
       />

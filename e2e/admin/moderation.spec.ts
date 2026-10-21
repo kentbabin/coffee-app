@@ -106,8 +106,8 @@ test("roasters without a shop are added and edited under Roasters", async ({ pag
   await page.getByRole("button", { name: "Save roaster" }).click();
   await expect(page.getByRole("row", { name: new RegExp(name) })).toContainText("Kintamani");
 
-  // A roaster that is also a shop is renamed from its shop.
+  // A shop's own roastery is an ordinary roaster, edited here.
   await page.getByRole("row", { name: /^Sample Roastery/ }).getByRole("link", { name: "Sample Roastery" }).first().click();
-  await expect(page.getByText("This roaster is also a shop")).toBeVisible();
-  await expect(page.getByRole("textbox", { name: /^Name/ })).toHaveAttribute("readonly", "");
+  await expect(page.getByText("Own roastery of")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /^Name/ })).not.toHaveAttribute("readonly");
 });

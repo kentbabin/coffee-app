@@ -123,23 +123,17 @@ export type Database = {
                   ]
                 },"roasters": {
                   Row: {
-                    "city": string | null,"created_at": string,"id": string,"name": string,"processing": (string)[],"shop_id": string | null,"slug": string,"updated_at": string,"website": string | null
+                    "city": string | null,"created_at": string,"id": string,"name": string,"processing": (string)[],"slug": string,"updated_at": string,"website": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "city"?: string | null,"created_at"?: string,"id"?: string,"name": string,"processing"?: (string)[],"shop_id"?: string | null,"slug": string,"updated_at"?: string,"website"?: string | null
+                    "city"?: string | null,"created_at"?: string,"id"?: string,"name": string,"processing"?: (string)[],"slug": string,"updated_at"?: string,"website"?: string | null
                   }
                   Update: {
-                    "city"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"processing"?: (string)[],"shop_id"?: string | null,"slug"?: string,"updated_at"?: string,"website"?: string | null
+                    "city"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"processing"?: (string)[],"slug"?: string,"updated_at"?: string,"website"?: string | null
                   }
                   Relationships: [
-                    {
-      foreignKeyName: "roasters_shop_id_fkey"
-      columns: ["shop_id"]
-isOneToOne: true
-      referencedRelation: "shops"
-      referencedColumns: ["id"]
-    }
+                    
                   ]
                 },"shop_preparations": {
                   Row: {
@@ -189,14 +183,14 @@ isOneToOne: false
                   ]
                 },"shop_roasters": {
                   Row: {
-                    "roaster_id": string,"shop_id": string
+                    "is_own": boolean,"roaster_id": string,"shop_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "roaster_id": string,"shop_id": string
+                    "is_own"?: boolean,"roaster_id": string,"shop_id": string
                   }
                   Update: {
-                    "roaster_id"?: string,"shop_id"?: string
+                    "is_own"?: boolean,"roaster_id"?: string,"shop_id"?: string
                   }
                   Relationships: [
                     {
@@ -310,23 +304,17 @@ isOneToOne: false
           Views: {
             "roaster_directory": {
                   Row: {
-                    "city": string | null,"id": string | null,"name": string | null,"processing": (string)[] | null,"shop_count": number | null,"shop_id": string | null,"slug": string | null,"website": string | null
+                    "city": string | null,"id": string | null,"name": string | null,"processing": (string)[] | null,"shop_count": number | null,"slug": string | null,"website": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                           "city"?: string | null,"id"?: string | null,"name"?: string | null,"processing"?: (string)[] | null,"shop_count"?: never,"shop_id"?: string | null,"slug"?: string | null,"website"?: string | null
+                           "city"?: string | null,"id"?: string | null,"name"?: string | null,"processing"?: (string)[] | null,"shop_count"?: never,"slug"?: string | null,"website"?: string | null
                          }
                         Update: {
-                           "city"?: string | null,"id"?: string | null,"name"?: string | null,"processing"?: (string)[] | null,"shop_count"?: never,"shop_id"?: string | null,"slug"?: string | null,"website"?: string | null
+                           "city"?: string | null,"id"?: string | null,"name"?: string | null,"processing"?: (string)[] | null,"shop_count"?: never,"slug"?: string | null,"website"?: string | null
                          }
                         Relationships: [
-                    {
-      foreignKeyName: "roasters_shop_id_fkey"
-      columns: ["shop_id"]
-isOneToOne: true
-      referencedRelation: "shops"
-      referencedColumns: ["id"]
-    }
+                    
                   ]
                 }
           }

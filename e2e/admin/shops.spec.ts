@@ -77,6 +77,27 @@ test("the pin comes from the Maps link, and a changed slug keeps old links worki
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
 });
 
+test("a shop that roasts can name its roastery, and no roaster is made from the shop", async ({ page }) => {
+  const name = unique();
+  await fillNewShop(page, name);
+  await page.getByRole("group", { name: /^Type/ }).getByRole("button", { name: "Roaster and brewer" }).click();
+  await page.getByRole("group", { name: /^Their own roastery/ }).getByRole("button", { name: /Sample Island Roasters/ }).click();
+  await page.getByRole("button", { name: "Save shop" }).click();
+  await expect(page.getByRole("status")).toContainText(`Saved ${name}`);
+
+  // The shop page names the roastery, before the other roasters it serves.
+  await open(page, `/shops/${slugOf(name)}`);
+  const beans = page.getByRole("region", { name: "Beans from" }).getByRole("listitem");
+  await expect(beans.first()).toHaveText("Sample Island Roasters, their own roastery");
+  await expect(beans.nth(1)).toContainText("Highland Sample Roasters");
+
+  // The roastery lists the shop as one of its own; no roaster carries the shop's name.
+  await open(page, "/roasters/sample-island-roasters");
+  await expect(page.getByRole("region", { name: "Their shops" }).getByRole("article").filter({ hasText: name })).toBeVisible();
+  await open(page, "/admin/roasters");
+  await expect(page.getByRole("row", { name: new RegExp(`^${name}`) })).toHaveCount(0);
+});
+
 test("a slug another shop uses is refused", async ({ page }) => {
   await fillNewShop(page, unique());
   await page.getByRole("textbox", { name: "Slug" }).fill("sample-roastery");

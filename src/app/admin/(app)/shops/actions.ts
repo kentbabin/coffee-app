@@ -50,6 +50,8 @@ export async function saveShop(input: {
       lat: pin?.lat ?? null,
       lng: pin?.lng ?? null,
       type: v.type,
+      // Only a shop that roasts has its own roastery; the database ignores it otherwise.
+      own_roaster_id: v.type === "both" && v.own_roaster_id ? v.own_roaster_id : null,
       roast_levels: v.roast_levels,
       bean_origin: v.bean_origin,
       processing: v.processing,
