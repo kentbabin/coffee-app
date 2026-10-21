@@ -1,11 +1,11 @@
 -- Public behaviour: voting, submissions and the search/filter function.
 begin;
 set search_path = public, extensions;
-select plan(22);
+select plan(25);
 
-insert into shops (id, name, address, area_id, type, roast_levels, bean_origin, processing, description)
+insert into shops (id, name, address, area_id, type, roast_levels, bean_origin, processing, description, serves_geisha)
 select '00000000-0000-0000-0000-00000000f101', 'Vote Test Cafe', 'Jl. Test 20', id, 'brewer', '{light}', 'local', '{washed}',
-  'Zzyzx single origin.'
+  'Zzyzx single origin.', true
 from areas where slug = 'kuta';
 insert into shops (id, name, address, area_id, type, roast_levels, bean_origin, processing, is_hidden)
 select '00000000-0000-0000-0000-00000000f102', 'Hidden Vote Cafe', 'Jl. Test 21', id, 'brewer', '{light}', 'local', '{washed}', true
@@ -134,6 +134,18 @@ select is_empty(
   $$ select 1 from search_shops(p_areas => '{canggu}', p_preparations => '{manual}')
      where area_slug <> 'canggu' or 'manual' <> all (preparations) $$,
   'different filters combine with AND'
+);
+select ok(
+  'Vote Test Cafe' in (select name from search_shops(p_query => 'geisha')),
+  'searching "geisha" finds shops with Geisha beans'
+);
+select is_empty(
+  $$ select 1 from search_shops(p_geisha => true) where not serves_geisha $$,
+  'the Geisha filter only returns shops with Geisha beans'
+);
+select ok(
+  'Vote Test Cafe' in (select name from search_shops(p_geisha => true, p_areas => '{kuta}')),
+  'the Geisha filter combines with other filters'
 );
 select is(
   (select array_agg(score order by ordinality) from search_shops() with ordinality),

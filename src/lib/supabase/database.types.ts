@@ -391,7 +391,7 @@ isOneToOne: true
         isSetofReturn: false
       } },
 "search_shops":
-{ Args: { "p_areas"?: (string)[],"p_bean_origin"?: string,"p_limit"?: number,"p_offset"?: number,"p_preparations"?: (string)[],"p_processing"?: (string)[],"p_query"?: string,"p_roast"?: (string)[],"p_type"?: Database["public"]['Enums']["shop_type"] }; Returns: {
+{ Args: { "p_areas"?: (string)[],"p_bean_origin"?: string,"p_geisha"?: boolean,"p_limit"?: number,"p_offset"?: number,"p_preparations"?: (string)[],"p_processing"?: (string)[],"p_query"?: string,"p_roast"?: (string)[],"p_type"?: Database["public"]['Enums']["shop_type"] }; Returns: {
               "address": string,"area_label": string,"area_slug": string,"bean_origin": string,"description": string,"downvotes": number,"id": string,"maps_url": string,"name": string,"preparations": (string)[],"processing": (string)[],"roast_levels": (string)[],"score": number,"serves_geisha": boolean,"slug": string,"total_count": number,"type": Database["public"]['Enums']["shop_type"],"upvotes": number
             }[]
                            },

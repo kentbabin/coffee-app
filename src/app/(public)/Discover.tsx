@@ -20,6 +20,8 @@ function groupsFor(options: OptionLists): Group[] {
     // "Both" shops match either choice, so it isn't a choice of its own.
     { key: "origin", label: "Bean origin", choices: toChoices(active(options.bean_origins).filter((o) => o.slug !== "both")) },
     { key: "processing", label: "Processing", choices: toChoices(active(options.processing_methods)) },
+    // On or off, so one chip.
+    { key: "geisha", label: "Geisha", choices: [{ value: "1", label: "Geisha beans" }] },
     { key: "area", label: "Area", choices: toChoices(active(options.areas)) },
     {
       key: "type",
@@ -33,6 +35,7 @@ function groupsFor(options: OptionLists): Group[] {
 }
 
 function isOn(f: Filters, key: FilterKey, value: string) {
+  if (key === "geisha") return f.geisha;
   const v = f[key];
   return Array.isArray(v) ? v.includes(value) : v === value;
 }
@@ -124,7 +127,7 @@ export function Discover({ filters: fromServer, options, results }: { filters: F
     g.choices
       .filter((c) => isOn(filters, g.key, c.value))
       .map((c) => (
-        <Chip key={`${g.key}-${c.value}`} onRemove={() => toggle(g.key, c.value)} removeLabel={`${c.label} (${g.label.toLowerCase()})`}>
+        <Chip key={`${g.key}-${c.value}`} onRemove={() => toggle(g.key, c.value)} removeLabel={g.key === "geisha" ? c.label : `${c.label} (${g.label.toLowerCase()})`}>
           {c.label}
         </Chip>
       )),

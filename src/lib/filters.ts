@@ -13,13 +13,15 @@ export type Filters = {
   /** Single choice: "both" (roasts its own beans too) or "brewer". */
   type: "" | "both" | "brewer";
   area: string[];
+  /** Only shops with Geisha beans on offer. */
+  geisha: boolean;
   /** How many pages of 24 are shown ("Load more"). */
   page: number;
 };
 
-export const emptyFilters: Filters = { q: "", roast: [], prep: [], origin: "", processing: [], type: "", area: [], page: 1 };
+export const emptyFilters: Filters = { q: "", roast: [], prep: [], origin: "", processing: [], type: "", area: [], geisha: false, page: 1 };
 
-export type FilterKey = "roast" | "prep" | "origin" | "processing" | "type" | "area";
+export type FilterKey = "roast" | "prep" | "origin" | "processing" | "type" | "area" | "geisha";
 
 type Params = Record<string, string | string[] | undefined>;
 
@@ -46,6 +48,7 @@ export function parseFilters(params: Params): Filters {
     processing: list(params.processing),
     type: type === "both" || type === "brewer" ? type : "",
     area: list(params.area),
+    geisha: first(params.geisha) === "1",
     page: Number.isFinite(page) && page > 1 ? Math.min(page, 50) : 1,
   };
 }
@@ -60,15 +63,17 @@ export function filtersToQuery(f: Filters) {
   if (f.processing.length) p.set("processing", f.processing.join(","));
   if (f.type) p.set("type", f.type);
   if (f.area.length) p.set("area", f.area.join(","));
+  if (f.geisha) p.set("geisha", "1");
   if (f.page > 1) p.set("page", String(f.page));
   // Commas read better than %2C in a shared link.
   return p.toString().replaceAll("%2C", ",");
 }
 
-/** Toggles one value. Single-choice filters replace their value; picking it again clears it. */
+/** Toggles one value. Single-choice filters replace their value; picking it again clears it. Geisha is on or off. */
 export function toggleFilter(f: Filters, key: FilterKey, value: string): Filters {
   const next = { ...f, page: 1 };
-  if (key === "origin") next.origin = f.origin === value ? "" : value;
+  if (key === "geisha") next.geisha = !f.geisha;
+  else if (key === "origin") next.origin = f.origin === value ? "" : value;
   else if (key === "type") next.type = f.type === value ? "" : (value as Filters["type"]);
   else next[key] = f[key].includes(value) ? f[key].filter((v) => v !== value) : [...f[key], value];
   return next;
@@ -79,5 +84,5 @@ export function clearFilters(f: Filters): Filters {
 }
 
 export function appliedCount(f: Filters) {
-  return f.roast.length + f.prep.length + (f.origin ? 1 : 0) + f.processing.length + (f.type ? 1 : 0) + f.area.length;
+  return f.roast.length + f.prep.length + (f.origin ? 1 : 0) + f.processing.length + (f.type ? 1 : 0) + f.area.length + (f.geisha ? 1 : 0);
 }

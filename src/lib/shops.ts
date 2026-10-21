@@ -61,6 +61,7 @@ export async function searchShops(f: Filters): Promise<{ shops: ShopSummary[]; t
     p_processing: f.processing,
     p_type: f.type || undefined,
     p_areas: f.area,
+    p_geisha: f.geisha || undefined,
     p_limit: PAGE_SIZE * f.page,
     p_offset: 0,
   });

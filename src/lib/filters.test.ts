@@ -43,6 +43,16 @@ describe("toggleFilter", () => {
     expect(toggleFilter(local, "origin", "local").origin).toBe("");
   });
 
+  it("turns Geisha on and off, in the URL as geisha=1", () => {
+    const on = toggleFilter(emptyFilters, "geisha", "1");
+    expect(on.geisha).toBe(true);
+    expect(appliedCount(on)).toBe(1);
+    expect(filtersToQuery(on)).toBe("geisha=1");
+    expect(parseFilters({ geisha: "1" }).geisha).toBe(true);
+    expect(parseFilters({ geisha: "yes" }).geisha).toBe(false);
+    expect(toggleFilter(on, "geisha", "1").geisha).toBe(false);
+  });
+
   it("clearing keeps the search text", () => {
     const f = { ...emptyFilters, q: "kopi", roast: ["dark"], type: "brewer" as const };
     expect(clearFilters(f)).toEqual({ ...emptyFilters, q: "kopi" });

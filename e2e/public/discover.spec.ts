@@ -151,6 +151,13 @@ test.describe("on a wide screen", () => {
     await panel.getByRole("group", { name: "Roaster or brewer" }).getByRole("button", { name: "Roaster and brewer" }).click();
     await expect(page).toHaveURL(/type=both/);
     for (const card of await page.getByRole("article").all()) await expect(card.locator(".ca-tag").first()).toHaveText("Roaster");
+
+    // Geisha is one chip: on or off.
+    await panel.getByRole("group", { name: "Geisha" }).getByRole("button", { name: "Geisha beans" }).click();
+    await expect(page).toHaveURL(/type=both&geisha=1/);
+    await expect(page.getByRole("article").first()).toBeVisible();
+    for (const card of await page.getByRole("article").all()) await expect(card.locator(".ca-tag", { hasText: "Geisha" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Remove filter Geisha beans" })).toBeVisible();
     // Area is in the row, not repeated in the panel.
     await expect(panel.getByRole("group", { name: "Area" })).toHaveCount(0);
 
