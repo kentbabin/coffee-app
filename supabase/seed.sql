@@ -40,16 +40,16 @@ insert into public.roasters (name, city, processing) values
 create function pg_temp.seed_shop(
   p_name text, p_area text, p_type public.shop_type, p_roast text[], p_preparations text[],
   p_origin text, p_processing text[], p_roasters text[], p_up integer, p_down integer,
-  p_description text, p_hidden boolean default false
+  p_description text, p_hidden boolean default false, p_geisha boolean default false
 ) returns void language plpgsql as $$
 declare
   v_shop public.shops;
 begin
-  insert into public.shops (name, address, area_id, maps_url, lat, lng, type, roast_levels, bean_origin, processing, description, is_hidden)
+  insert into public.shops (name, address, area_id, maps_url, lat, lng, type, roast_levels, bean_origin, processing, serves_geisha, description, is_hidden)
   select p_name, 'Jl. Contoh No. ' || (10 + floor(random() * 80))::int || ', ' || a.label, a.id,
     'https://www.google.com/maps/search/?api=1&query=' || replace(p_name, ' ', '+'),
     -8.65 + random() * 0.2, 115.1 + random() * 0.2,
-    p_type, p_roast, p_origin, p_processing, p_description, p_hidden
+    p_type, p_roast, p_origin, p_processing, p_geisha, p_description, p_hidden
   from public.areas a where a.slug = p_area
   returning * into v_shop;
 
@@ -73,7 +73,7 @@ $$;
 
 -- Shops that roast first, so the brewers below can list them.
 select pg_temp.seed_shop('Sample Roastery', 'canggu', 'both', '{light,medium}', '{espresso,manual,cold-brew}', 'local', '{washed,natural}', '{}', 128, 6,
-  'Roasts Kintamani beans in house and brews them light on a slow bar.');
+  'Roasts Kintamani beans in house and brews them light on a slow bar.', p_geisha => true);
 select pg_temp.seed_shop('Sample Bean Works', 'seminyak', 'both', '{light}', '{manual,omakase}', 'foreign', '{experimental,natural}', '{}', 61, 4,
   'A roastery with a tasting counter for single origins and experimental lots.');
 select pg_temp.seed_shop('Sample Roast Lab', 'ubud', 'both', '{medium,dark}', '{espresso,manual}', 'local', '{natural}', '{}', 39, 3,
@@ -88,7 +88,7 @@ select pg_temp.seed_shop('Sample Filter House', 'canggu', 'brewer', '{light,medi
 select pg_temp.seed_shop('Sample Espresso Corner', 'sanur', 'brewer', '{medium}', '{espresso}', 'foreign', '{washed}', '{Sample Dark Room}', 47, 8,
   'A standing espresso bar near the beach.');
 select pg_temp.seed_shop('Sample Slow Bar', 'uluwatu', 'brewer', '{light}', '{manual,cold-brew,omakase}', 'both', '{experimental}', '{Sample Roast Lab}', 22, 2,
-  'Six seats and a coffee omakase on weekends.');
+  'Six seats and a coffee omakase on weekends.', p_geisha => true);
 select pg_temp.seed_shop('Sample Kopi Kuta', 'kuta', 'brewer', '{medium,dark}', '{espresso,cold-brew}', 'local', '{natural,washed}', '{Highland Sample Roasters}', 15, 6,
   'Local beans as espresso and cold brew.');
 select pg_temp.seed_shop('Sample Morning Brew', 'denpasar', 'brewer', '{light,medium}', '{manual,batch-brew,espresso}', 'local', '{washed}', '{Sample Roastery}', 9, 1,

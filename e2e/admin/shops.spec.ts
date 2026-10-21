@@ -110,10 +110,12 @@ test("add, edit with history, hide and unhide a shop", async ({ page }) => {
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
   await page.getByRole("textbox", { name: "Address" }).fill("Jl. Pantai Batu Bolong 2");
   await page.getByRole("group", { name: /^Roast levels/ }).getByRole("button", { name: "Medium" }).click();
+  await page.getByRole("checkbox", { name: "Geisha beans on offer" }).check();
   await page.getByRole("button", { name: "Save shop" }).click();
   await expect(page.getByRole("status")).toContainText(`Saved ${name}`);
 
   await page.getByRole("status").getByRole("link", { name }).click();
+  await expect(page.getByRole("checkbox", { name: "Geisha beans on offer" })).toBeChecked();
   await page.getByRole("link", { name: "History" }).click();
   const latest = page.getByRole("listitem").first();
   await expect(latest).toContainText("Edited");
@@ -121,6 +123,8 @@ test("add, edit with history, hide and unhide a shop", async ({ page }) => {
   await expect(latest).toContainText("Jl. Pantai Batu Bolong 1");
   await expect(latest).toContainText("Jl. Pantai Batu Bolong 2");
   await expect(latest).toContainText("Light, Medium");
+  await expect(latest).toContainText("Geisha beans");
+  await expect(latest).toContainText("On offer");
   await expect(page.getByRole("listitem").last()).toContainText("Created");
 
   // A5: hide, which is recorded too, then unhide.

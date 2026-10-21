@@ -2,7 +2,7 @@
 -- and approving submissions.
 begin;
 set search_path = public, extensions;
-select plan(35);
+select plan(37);
 
 insert into auth.users (id, email, aud, role)
 values ('00000000-0000-0000-0000-0000000000ad', 'admin@example.com', 'authenticated', 'authenticated');
@@ -46,6 +46,7 @@ select * from save_shop(
 select is((select slug from saved), 'test-brewer-cafe', 'a new shop gets a slug from its name');
 select is((select preparations from saved), '{espresso,manual}'::text[], 'preparations are copied onto the shop row');
 select is((select cardinality(roaster_ids) from saved), 2, 'the brewer lists both roasters');
+select is((select serves_geisha from saved), false, 'a shop has no Geisha beans unless the admin says so');
 select ok(exists (select 1 from roasters where name = 'Inline Test Roasters' and city = 'Bangli'), 'an inline roaster is created');
 select is(
   (select created_by from saved), '00000000-0000-0000-0000-0000000000ad'::uuid,
@@ -94,7 +95,7 @@ select * from save_shop(
     'id', (select id from saved),
     'name', 'Test Brewer Cafe', 'address', 'Jl. Test 11', 'area_id', pg_temp.area('ubud'),
     'type', 'brewer', 'roast_levels', '["light", "medium"]'::jsonb, 'bean_origin', 'local', 'processing', '["washed"]'::jsonb,
-    'website', 'https://example.com'
+    'serves_geisha', true, 'website', 'https://example.com'
   ),
   pg_temp.prep('{espresso}'),
   array[pg_temp.roaster('Highland Sample Roasters')],
@@ -109,9 +110,10 @@ select results_eq(
 );
 select is(
   (select array_agg(k order by k) from shop_revisions r, jsonb_object_keys(r.changes) k where r.shop_id = (select id from saved)),
-  '{address,preparations,roast_levels,roaster_ids}'::text[],
+  '{address,preparations,roast_levels,roaster_ids,serves_geisha}'::text[],
   'the revision lists exactly the changed fields, including preparations and roasters'
 );
+select is((select serves_geisha from edited), true, 'saving records Geisha beans on offer');
 select is(
   (select changes -> 'roast_levels' from shop_revisions where shop_id = (select id from saved)),
   '{"from": ["light"], "to": ["light", "medium"]}'::jsonb,

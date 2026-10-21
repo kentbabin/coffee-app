@@ -103,6 +103,12 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
               <dt>Processing</dt>
               <dd>{shop.coffee.processing.join(", ")}</dd>
             </div>
+            {shop.serves_geisha ? (
+              <div>
+                <dt>Geisha</dt>
+                <dd>Geisha beans on offer</dd>
+              </div>
+            ) : null}
           </dl>
         </section>
 

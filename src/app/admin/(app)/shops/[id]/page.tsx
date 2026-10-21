@@ -38,6 +38,7 @@ export default async function EditShopPage({ params }: PageProps<"/admin/shops/[
     preparation_ids: shop.preparations.map((slug) => prepId.get(slug)).filter((v): v is string => Boolean(v)),
     bean_origin: shop.bean_origin,
     processing: shop.processing,
+    serves_geisha: shop.serves_geisha,
     description: shop.description ?? "",
     website: shop.website ?? "",
     instagram: shop.instagram ? `@${shop.instagram}` : "",

@@ -8,6 +8,8 @@ export type ShopCardData = {
   area: string;
   /** Roasts its own beans too. Every shop brews, so only roasters are marked. */
   roaster: boolean;
+  /** Has Geisha beans on offer. */
+  geisha: boolean;
   /** One sentence on why the shop matters, when the admin has written one. */
   description: string | null;
   /** Opens the shop in Google Maps (see shopMapsUrl). */
@@ -19,7 +21,12 @@ export function ShopCard({ shop, href, vote, className }: { shop: ShopCardData; 
   return (
     <article className={cx("ca-card", className)}>
       <div className="ca-card__head">
-        {shop.roaster ? <span className="ca-tag">Roaster</span> : null}
+        {shop.roaster || shop.geisha ? (
+          <div className="ca-card__tags">
+            {shop.roaster ? <span className="ca-tag">Roaster</span> : null}
+            {shop.geisha ? <span className="ca-tag">Geisha</span> : null}
+          </div>
+        ) : null}
         <h3 className="ca-card__name">
           <Link className="ca-card__link" href={href}>
             {shop.name}

@@ -316,6 +316,10 @@ export function ShopForm({
             />
           )}
         />
+        <label className="adm-check">
+          <input type="checkbox" {...register("serves_geisha")} />
+          Geisha beans on offer
+        </label>
       </section>
 
       <section className="adm-section" aria-labelledby={fid("sec-details")}>

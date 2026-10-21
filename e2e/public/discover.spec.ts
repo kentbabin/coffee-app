@@ -13,6 +13,7 @@ test("P1: shops are ranked by score, with a one-tap area filter", async ({ page 
   await expect(page.getByRole("heading", { name: "For Serious Coffee People" })).toBeVisible();
   const first = page.getByRole("article").first();
   await expect(first).toContainText("Sample Roastery");
+  await expect(first.locator(".ca-tag")).toHaveText(["Roaster", "Geisha"]);
   // The card opens the shop in Google Maps directly, in a new tab.
   const maps = first.getByRole("link", { name: "Open Sample Roastery in Google Maps" });
   await expect(maps).toHaveAttribute("href", /google\.[a-z.]+\/maps|goo\.gl/);
@@ -149,7 +150,7 @@ test.describe("on a wide screen", () => {
     const panel = page.locator("#filters-panel");
     await panel.getByRole("group", { name: "Roaster or brewer" }).getByRole("button", { name: "Roaster and brewer" }).click();
     await expect(page).toHaveURL(/type=both/);
-    for (const card of await page.getByRole("article").all()) await expect(card.locator(".ca-tag")).toHaveText("Roaster");
+    for (const card of await page.getByRole("article").all()) await expect(card.locator(".ca-tag").first()).toHaveText("Roaster");
     // Area is in the row, not repeated in the panel.
     await expect(panel.getByRole("group", { name: "Area" })).toHaveCount(0);
 

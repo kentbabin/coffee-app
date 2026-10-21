@@ -53,6 +53,7 @@ export async function saveShop(input: {
       roast_levels: v.roast_levels,
       bean_origin: v.bean_origin,
       processing: v.processing,
+      serves_geisha: v.serves_geisha,
       description: v.description,
       website: v.website,
       instagram: instagramHandle(v.instagram),

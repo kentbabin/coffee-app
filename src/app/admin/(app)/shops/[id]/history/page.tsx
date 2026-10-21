@@ -32,6 +32,7 @@ const FIELD_LABEL: Record<string, string> = {
   preparations: "Preparation",
   bean_origin: "Bean origin",
   processing: "Processing",
+  serves_geisha: "Geisha beans",
   description: "Description",
   website: "Website",
   instagram: "Instagram",
@@ -68,6 +69,7 @@ export default async function ShopHistoryPage({ params }: PageProps<"/admin/shop
     if (field === "area_id") return area.get(String(value)) ?? "Unknown area";
     if (field === "type") return TYPE_LABEL[value as ShopType] ?? String(value);
     if (field === "is_hidden") return value ? "Hidden" : "Visible";
+    if (field === "serves_geisha") return value ? "On offer" : "Not on offer";
     if (field === "bean_origin") return labels.bean_origin(String(value));
     if (field === "roaster_ids" && Array.isArray(value)) return value.map((v) => roasterName.get(String(v)) ?? "Removed roaster").join(", ") || "None";
     if ((field === "roast_levels" || field === "preparations" || field === "processing") && Array.isArray(value)) {

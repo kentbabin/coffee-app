@@ -281,14 +281,14 @@ isOneToOne: false
                   ]
                 },"shops": {
                   Row: {
-                    "address": string,"area_id": string,"bean_origin": string,"cover_image_url": string | null,"created_at": string,"created_by": string | null,"description": string | null,"downvotes": number,"id": string,"instagram": string | null,"is_hidden": boolean,"lat": number | null,"lng": number | null,"maps_url": string | null,"name": string,"preparations": (string)[],"processing": (string)[],"roast_levels": (string)[],"roaster_ids": (string)[],"score": number,"search": unknown,"slug": string,"type": Database["public"]['Enums']["shop_type"],"updated_at": string,"updated_by": string | null,"upvotes": number,"website": string | null,"shop_tracked_fields": Json | null
+                    "address": string,"area_id": string,"bean_origin": string,"cover_image_url": string | null,"created_at": string,"created_by": string | null,"description": string | null,"downvotes": number,"id": string,"instagram": string | null,"is_hidden": boolean,"lat": number | null,"lng": number | null,"maps_url": string | null,"name": string,"preparations": (string)[],"processing": (string)[],"roast_levels": (string)[],"roaster_ids": (string)[],"score": number,"search": unknown,"serves_geisha": boolean,"slug": string,"type": Database["public"]['Enums']["shop_type"],"updated_at": string,"updated_by": string | null,"upvotes": number,"website": string | null,"shop_tracked_fields": Json | null
                   }
                   ComputedFields: "shop_tracked_fields"
                   Insert: {
-                    "address": string,"area_id": string,"bean_origin": string,"cover_image_url"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"downvotes"?: number,"id"?: string,"instagram"?: string | null,"is_hidden"?: boolean,"lat"?: number | null,"lng"?: number | null,"maps_url"?: string | null,"name": string,"preparations"?: (string)[],"processing"?: (string)[],"roast_levels"?: (string)[],"roaster_ids"?: (string)[],"score"?: number,"search"?: unknown,"slug": string,"type": Database["public"]['Enums']["shop_type"],"updated_at"?: string,"updated_by"?: string | null,"upvotes"?: number,"website"?: string | null
+                    "address": string,"area_id": string,"bean_origin": string,"cover_image_url"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"downvotes"?: number,"id"?: string,"instagram"?: string | null,"is_hidden"?: boolean,"lat"?: number | null,"lng"?: number | null,"maps_url"?: string | null,"name": string,"preparations"?: (string)[],"processing"?: (string)[],"roast_levels"?: (string)[],"roaster_ids"?: (string)[],"score"?: number,"search"?: unknown,"serves_geisha"?: boolean,"slug": string,"type": Database["public"]['Enums']["shop_type"],"updated_at"?: string,"updated_by"?: string | null,"upvotes"?: number,"website"?: string | null
                   }
                   Update: {
-                    "address"?: string,"area_id"?: string,"bean_origin"?: string,"cover_image_url"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"downvotes"?: number,"id"?: string,"instagram"?: string | null,"is_hidden"?: boolean,"lat"?: number | null,"lng"?: number | null,"maps_url"?: string | null,"name"?: string,"preparations"?: (string)[],"processing"?: (string)[],"roast_levels"?: (string)[],"roaster_ids"?: (string)[],"score"?: number,"search"?: unknown,"slug"?: string,"type"?: Database["public"]['Enums']["shop_type"],"updated_at"?: string,"updated_by"?: string | null,"upvotes"?: number,"website"?: string | null
+                    "address"?: string,"area_id"?: string,"bean_origin"?: string,"cover_image_url"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"downvotes"?: number,"id"?: string,"instagram"?: string | null,"is_hidden"?: boolean,"lat"?: number | null,"lng"?: number | null,"maps_url"?: string | null,"name"?: string,"preparations"?: (string)[],"processing"?: (string)[],"roast_levels"?: (string)[],"roaster_ids"?: (string)[],"score"?: number,"search"?: unknown,"serves_geisha"?: boolean,"slug"?: string,"type"?: Database["public"]['Enums']["shop_type"],"updated_at"?: string,"updated_by"?: string | null,"upvotes"?: number,"website"?: string | null
                   }
                   Relationships: [
                     {
@@ -376,6 +376,7 @@ isOneToOne: true
 "roaster_ids": (string)[],
 "score": number,
 "search": unknown,
+"serves_geisha": boolean,
 "slug": string,
 "type": Database["public"]['Enums']["shop_type"],
 "updated_at": string,
@@ -391,7 +392,7 @@ isOneToOne: true
       } },
 "search_shops":
 { Args: { "p_areas"?: (string)[],"p_bean_origin"?: string,"p_limit"?: number,"p_offset"?: number,"p_preparations"?: (string)[],"p_processing"?: (string)[],"p_query"?: string,"p_roast"?: (string)[],"p_type"?: Database["public"]['Enums']["shop_type"] }; Returns: {
-              "address": string,"area_label": string,"area_slug": string,"bean_origin": string,"description": string,"downvotes": number,"id": string,"maps_url": string,"name": string,"preparations": (string)[],"processing": (string)[],"roast_levels": (string)[],"score": number,"slug": string,"total_count": number,"type": Database["public"]['Enums']["shop_type"],"upvotes": number
+              "address": string,"area_label": string,"area_slug": string,"bean_origin": string,"description": string,"downvotes": number,"id": string,"maps_url": string,"name": string,"preparations": (string)[],"processing": (string)[],"roast_levels": (string)[],"score": number,"serves_geisha": boolean,"slug": string,"total_count": number,"type": Database["public"]['Enums']["shop_type"],"upvotes": number
             }[]
                            },
 "shop_tracked_fields":

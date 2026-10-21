@@ -15,10 +15,26 @@ import { publicDb } from "@/lib/supabase/public";
 export type ShopSummary = { id: string; slug: string; up: number; down: number; card: ShopCardData };
 
 function card(
-  row: { name: string; type: ShopType; description: string | null; address: string; maps_url: string | null; lat?: number | null; lng?: number | null },
+  row: {
+    name: string;
+    type: ShopType;
+    serves_geisha: boolean;
+    description: string | null;
+    address: string;
+    maps_url: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  },
   area: string,
 ): ShopCardData {
-  return { name: row.name, area, roaster: row.type === "both", description: row.description ?? null, mapsUrl: shopMapsUrl(row) };
+  return {
+    name: row.name,
+    area,
+    roaster: row.type === "both",
+    geisha: row.serves_geisha,
+    description: row.description ?? null,
+    mapsUrl: shopMapsUrl(row),
+  };
 }
 
 /** A shop's coffee attributes as display labels, for the shop page. */
@@ -120,7 +136,7 @@ export async function getRoaster(slug: string) {
   const { data: shops } = ids.length
     ? await publicDb
         .from("shops")
-        .select("id, slug, name, type, description, address, maps_url, lat, lng, upvotes, downvotes, area:areas(label)")
+        .select("id, slug, name, type, serves_geisha, description, address, maps_url, lat, lng, upvotes, downvotes, area:areas(label)")
         .in("id", ids)
         .order("score", { ascending: false })
     : { data: [] };
