@@ -8,6 +8,7 @@
 .ca-chip:focus-visible,
 .ca-vote__btn:focus-visible,
 .ca-card__map:focus-visible,
+.ca-share:focus-visible,
 .ca-search__input:focus-visible,
 .ca-field__control:focus-visible,
 .ca-card__link:focus-visible {
@@ -126,21 +127,6 @@
   white-space: nowrap;
 }
 
-/* Roast scale */
-.ca-roast { display: inline-flex; align-items: center; gap: var(--space-2); }
-.ca-roast__bars { display: inline-flex; gap: var(--space-1); }
-.ca-roast__bar {
-  width: 18px;
-  height: 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-.ca-roast__bar--light.is-on { background: var(--roast-light); border-color: var(--roast-light); }
-.ca-roast__bar--medium.is-on { background: var(--roast-medium); border-color: var(--roast-medium); }
-.ca-roast__bar--dark.is-on { background: var(--roast-dark); border-color: var(--roast-dark); }
-.ca-roast__label { font: 500 13px/18px var(--font-sans); color: var(--ink-muted); }
-
 /* Vote control */
 .ca-vote { display: inline-flex; gap: var(--space-2); }
 .ca-vote__btn {
@@ -194,8 +180,9 @@
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
-/* Round, like the vote buttons beside it. */
-.ca-card__map {
+/* Round, like the vote buttons beside them. */
+.ca-card__map,
+.ca-share {
   position: relative;
   z-index: 1;
   display: inline-flex;
@@ -208,9 +195,13 @@
   background: var(--surface-raised);
   color: var(--ink);
   box-sizing: border-box;
+  cursor: pointer;
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
-.ca-card__map:hover { background: var(--surface-sunken); }
+.ca-card__map:hover,
+.ca-share:hover { background: var(--surface-sunken); }
+/* Read out when the link is copied; not shown. */
+.ca-share__status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .ca-card__vote { margin-left: auto; }
 .ca-card .ca-vote { position: relative; z-index: 1; }
 
@@ -368,5 +359,5 @@
 .ca-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-top: var(--space-2); }
 
 @media (prefers-reduced-motion: reduce) {
-  .ca-btn, .ca-chip, .ca-vote__btn, .ca-card__map { transition: none; }
+  .ca-btn, .ca-chip, .ca-vote__btn, .ca-card__map, .ca-share { transition: none; }
 }

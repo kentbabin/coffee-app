@@ -72,6 +72,8 @@ test("P4/P5: the shop page shows its details, and a vote counts once per device"
   await expect(page.getByRole("heading", { name: "Sample Espresso Corner", level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Sample Dark Room" })).toHaveAttribute("href", "/roasters/sample-dark-room");
   await expect(page.getByRole("link", { name: /Open in Google Maps/ })).toBeVisible();
+  // Coffee attributes are plain text, in the option lists' labels.
+  await expect(page.locator(".attrs > div").filter({ hasText: "Roast" }).locator("dd")).toHaveText("Medium");
   const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent()) ?? "{}");
   expect(ld["@type"]).toBe("CafeOrCoffeeShop");
 
@@ -91,6 +93,24 @@ test("P4/P5: the shop page shows its details, and a vote counts once per device"
   await voted.click();
   await expect(page.getByRole("button", { name: `Thumbs up, ${before}` })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByRole("button", { name: `Thumbs up, ${before}` })).toBeEnabled();
+});
+
+test("P4: Share copies the shop's link where there is no share sheet", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.addInitScript(() => Object.defineProperty(Navigator.prototype, "share", { value: undefined }));
+
+  // From a card in the list.
+  await open(page, "/");
+  const first = page.getByRole("article").first();
+  await first.getByRole("button", { name: "Share Sample Roastery" }).click();
+  await expect(first.getByRole("status")).toHaveText("Link copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("http://localhost:3000/shops/sample-roastery");
+
+  // From the shop page.
+  await open(page, "/shops/sample-espresso-corner");
+  await page.getByRole("button", { name: "Share" }).click();
+  await expect(page.getByRole("button", { name: "Link copied" })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("http://localhost:3000/shops/sample-espresso-corner");
 });
 
 test("P4: a hidden shop shows the not-found page", async ({ page }) => {

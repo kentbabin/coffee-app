@@ -40,7 +40,7 @@ function card(
 /** A shop's coffee attributes as display labels, for the shop page. */
 function coffee(row: { roast_levels: string[]; preparations: string[]; bean_origin: string; processing: string[] }, options: OptionLists) {
   return {
-    roastLevels: row.roast_levels,
+    roastLevels: row.roast_levels.map(labeller(options.roast_levels)),
     preparations: row.preparations.map(labeller(options.preparation_methods)),
     beanOrigin: labeller(options.bean_origins)(row.bean_origin),
     processing: row.processing.map(labeller(options.processing_methods)),

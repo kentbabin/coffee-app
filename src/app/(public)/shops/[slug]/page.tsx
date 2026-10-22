@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
 import { ShopVote } from "@/components/ShopVote";
-import { Badge, Button, Chip, Icon, RoastScale } from "@/components/ui";
+import { Badge, Button, Chip, Icon, ShareButton } from "@/components/ui";
 import { brand } from "@/lib/brand";
 import { TYPE_LABEL } from "@/lib/labels";
 import { shopMapsUrl } from "@/lib/maps";
@@ -12,7 +12,7 @@ import { getShop, getShopRedirect } from "@/lib/shops";
 export async function generateMetadata({ params }: PageProps<"/shops/[slug]">): Promise<Metadata> {
   const shop = await getShop((await params).slug);
   if (!shop) return { title: "Shop not found" };
-  const what = [TYPE_LABEL[shop.type], shop.coffee.roastLevels.join(", ") + " roast", shop.coffee.preparations.join(", ")].join(" · ");
+  const what = [TYPE_LABEL[shop.type], shop.coffee.roastLevels.join(", ").toLowerCase() + " roast", shop.coffee.preparations.join(", ")].join(" · ");
   const description = shop.description ?? `${shop.name} in ${shop.areaLabel}, ${shop.region}: ${what}.`;
   return {
     title: `${shop.name}, ${shop.areaLabel}`,
@@ -81,9 +81,7 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
           <dl className="panel attrs">
             <div>
               <dt>Roast</dt>
-              <dd>
-                <RoastScale levels={shop.coffee.roastLevels} />
-              </dd>
+              <dd>{shop.coffee.roastLevels.join(", ")}</dd>
             </div>
             <div>
               <dt>Preparation</dt>
@@ -142,6 +140,7 @@ async function ShopDetail({ params }: Pick<PageProps<"/shops/[slug]">, "params">
         <Button href={mapsHref}>
           Open in Google Maps <Icon name="externalLink" size={16} />
         </Button>
+        <ShareButton href={`/shops/${shop.slug}`} title={shop.name} />
         <iframe
           className="map"
           title={`Map showing ${shop.name}`}

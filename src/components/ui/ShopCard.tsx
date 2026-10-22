@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
+import { ShareButton } from "./ShareButton";
 
 export type ShopCardData = {
   name: string;
@@ -16,7 +17,7 @@ export type ShopCardData = {
   mapsUrl: string;
 };
 
-/** One shop in the ranked list. The whole card links to the shop page; the Maps link and vote buttons stay separately tappable. */
+/** One shop in the ranked list. The whole card links to the shop page; the Maps, share and vote buttons stay separately tappable. */
 export function ShopCard({ shop, href, vote, className }: { shop: ShopCardData; href: string; vote: ReactNode; className?: string }) {
   return (
     <article className={cx("ca-card", className)}>
@@ -39,6 +40,7 @@ export function ShopCard({ shop, href, vote, className }: { shop: ShopCardData; 
         <a className="ca-card__map" href={shop.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${shop.name} in Google Maps`}>
           <Icon name="mapPin" />
         </a>
+        <ShareButton variant="round" href={href} title={shop.name} />
         <div className="ca-card__vote">{vote}</div>
       </div>
     </article>
