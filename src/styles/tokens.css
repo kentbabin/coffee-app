@@ -49,8 +49,11 @@
   --content-max: 1120px;
 }
 
+/* Dark follows the device unless the visitor chose light in the header, and
+   applies whenever they chose dark (data-theme on <html>, see lib/theme.ts).
+   The two blocks hold the same values; change them together. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
 
     --surface: #17130f;
@@ -73,6 +76,30 @@
 
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45);
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #17130f;
+  --surface-raised: #211b16;
+  --surface-sunken: #100d0a;
+  --border: #3a322a;
+  --border-strong: #8a7f72;
+  --ink: #f4eee6;
+  --ink-muted: #b8ad9f;
+  --accent: #7fc08f;
+  --accent-hover: #9bd3a8;
+  --accent-soft: #1f3226;
+  --on-accent: #0f1f15;
+  --danger: #ff9b86;
+  --danger-soft: #3a1d19;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --roast-light: #e3b878;
+  --roast-medium: #b57a45;
+  --roast-dark: #94603f;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 /* Text styles, as utility classes. */

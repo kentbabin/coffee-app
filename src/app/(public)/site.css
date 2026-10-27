@@ -16,9 +16,9 @@
   .brand { font-size: 22px; line-height: 28px; }
 }
 
-/* On a phone the links sit behind the menu button and open below the header. */
-.menu-toggle {
-  display: none;
+/* Square icon buttons in the header: the theme switch, and the menu button on a phone. */
+.head-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: var(--tap-target);
@@ -30,7 +30,10 @@
   cursor: pointer;
   transition: background-color 150ms ease;
 }
-.menu-toggle:hover { background: var(--surface-sunken); }
+.head-btn:hover { background: var(--surface-sunken); }
+
+/* On a phone the links sit behind the menu button and open below the header. */
+.menu-toggle { display: none; }
 .menu { display: flex; flex-direction: column; padding-bottom: var(--space-4); }
 .menu__link {
   display: flex;
@@ -41,6 +44,15 @@
   font: 500 17px/24px var(--font-sans);
   text-decoration: none;
 }
+.menu__theme {
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: none;
+  cursor: pointer;
+}
 .menu .ca-btn { margin-top: var(--space-4); }
 @media (max-width: 719.98px) {
   .nav { display: none; }
@@ -50,7 +62,7 @@
   .menu { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .menu-toggle { transition: none; }
+  .head-btn { transition: none; }
 }
 
 .page-main { padding-bottom: var(--space-7); }

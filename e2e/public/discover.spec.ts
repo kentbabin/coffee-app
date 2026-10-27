@@ -140,6 +140,51 @@ test("on a phone, the header links sit behind a menu button", async ({ page }) =
   await expect(menu).toHaveAttribute("aria-expanded", "false");
 });
 
+// The page background, as the theme sets it.
+const surface = (page: Page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+const LIGHT = "rgb(249, 247, 243)";
+const DARK = "rgb(23, 19, 15)";
+
+test.describe("the theme", () => {
+  test.use({ colorScheme: "light" });
+
+  test("follows the device until the visitor switches it in the menu, and the switch is remembered", async ({ page }) => {
+    await open(page, "/");
+    expect(await surface(page)).toBe(LIGHT);
+    await page.getByRole("button", { name: "Menu" }).click();
+    const panel = page.locator("#site-menu");
+    await panel.getByRole("button", { name: "Dark mode" }).click();
+    expect(await surface(page)).toBe(DARK);
+    // The menu stays open, so the switch can be undone.
+    await expect(panel.getByRole("button", { name: "Light mode" })).toBeVisible();
+
+    // Applied before the first paint on the next visit.
+    await page.goto("/about");
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+    await page.waitForLoadState("networkidle");
+    expect(await surface(page)).toBe(DARK);
+
+    await page.getByRole("button", { name: "Menu" }).click();
+    await panel.getByRole("button", { name: "Light mode" }).click();
+    expect(await surface(page)).toBe(LIGHT);
+  });
+
+  test.describe("on a dark device", () => {
+    test.use({ colorScheme: "dark" });
+
+    test("a visitor can choose light", async ({ page }) => {
+      await open(page, "/");
+      expect(await surface(page)).toBe(DARK);
+      await page.getByRole("button", { name: "Menu" }).click();
+      await page.locator("#site-menu").getByRole("button", { name: "Light mode" }).click();
+      expect(await surface(page)).toBe(LIGHT);
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      expect(await surface(page)).toBe(LIGHT);
+    });
+  });
+});
+
 test("P4: a hidden shop shows the not-found page", async ({ page }) => {
   await open(page, "/shops/sample-closed-cafe");
   await expect(page.getByRole("heading", { name: "This page isn't here" })).toBeVisible();
@@ -192,6 +237,14 @@ test.describe("on a wide screen", () => {
     await expect(page.getByRole("heading", { name: "About", level: 1 })).toBeVisible();
     await expect(header.getByRole("link", { name: "Roasters" })).toBeVisible();
     await expect(header.getByRole("link", { name: "Submit a shop" })).toBeVisible();
+  });
+
+  test("the theme switch sits in the header", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await open(page, "/");
+    await page.getByRole("banner").getByRole("button", { name: "Dark mode" }).click();
+    expect(await surface(page)).toBe(DARK);
+    await expect(page.getByRole("banner").getByRole("button", { name: "Light mode" })).toBeVisible();
   });
 
   test("filters sit behind a Filters button, with the areas beside it", async ({ page }) => {
