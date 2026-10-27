@@ -22,18 +22,20 @@ export function ShopCard({ shop, href, vote, className }: { shop: ShopCardData; 
   return (
     <article className={cx("ca-card", className)}>
       <div className="ca-card__head">
+        <div className="ca-card__title">
+          <h3 className="ca-card__name">
+            <Link className="ca-card__link" href={href}>
+              {shop.name}
+            </Link>
+          </h3>
+          <p className="ca-card__area">{shop.area}</p>
+        </div>
         {shop.roaster || shop.geisha ? (
-          <div className="ca-card__tags">
-            {shop.roaster ? <span className="ca-tag">Roaster</span> : null}
-            {shop.geisha ? <span className="ca-tag">Geisha</span> : null}
+          <div className="ca-card__marks">
+            {shop.roaster ? <Mark icon="flame" label="Roaster" title="Roasts its own beans" /> : null}
+            {shop.geisha ? <Mark icon="flower" label="Geisha beans" title="Geisha beans on offer" /> : null}
           </div>
         ) : null}
-        <h3 className="ca-card__name">
-          <Link className="ca-card__link" href={href}>
-            {shop.name}
-          </Link>
-        </h3>
-        <p className="ca-card__area">{shop.area}</p>
       </div>
       {shop.description ? <p className="ca-card__desc">{shop.description}</p> : null}
       <div className="ca-card__foot">
@@ -44,5 +46,14 @@ export function ShopCard({ shop, href, vote, className }: { shop: ShopCardData; 
         <div className="ca-card__vote">{vote}</div>
       </div>
     </article>
+  );
+}
+
+/** A quiet icon for a yes/no designation. No circle, so it never reads as a button. */
+function Mark({ icon, label, title }: { icon: "flame" | "flower"; label: string; title: string }) {
+  return (
+    <span className="ca-mark" role="img" aria-label={label} title={title}>
+      <Icon name={icon} />
+    </span>
   );
 }

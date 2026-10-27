@@ -13,7 +13,10 @@ test("P1: shops are ranked by score, with a one-tap area filter", async ({ page 
   await expect(page.getByRole("heading", { name: "For Serious Coffee People" })).toBeVisible();
   const first = page.getByRole("article").first();
   await expect(first).toContainText("Sample Roastery");
-  await expect(first.locator(".ca-tag")).toHaveText(["Roaster", "Geisha"]);
+  // Roaster and Geisha are quiet icons, named for screen readers.
+  await expect(first.locator(".ca-mark")).toHaveCount(2);
+  await expect(first.getByRole("img", { name: "Roaster" })).toBeVisible();
+  await expect(first.getByRole("img", { name: "Geisha beans" })).toBeVisible();
   // The card opens the shop in Google Maps directly, in a new tab.
   const maps = first.getByRole("link", { name: "Open Sample Roastery in Google Maps" });
   await expect(maps).toHaveAttribute("href", /google\.[a-z.]+\/maps|goo\.gl/);
@@ -113,6 +116,30 @@ test("P4: Share copies the shop's link where there is no share sheet", async ({ 
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("http://localhost:3000/shops/sample-espresso-corner");
 });
 
+test("on a phone, the header links sit behind a menu button", async ({ page }) => {
+  await open(page, "/");
+  const header = page.getByRole("banner");
+  await expect(header.getByRole("link", { name: "Roasters" })).toBeHidden();
+  const menu = header.getByRole("button", { name: "Menu" });
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+
+  await menu.click();
+  await expect(menu).toHaveAttribute("aria-expanded", "true");
+  const panel = page.locator("#site-menu");
+  await expect(panel.getByRole("link")).toHaveText(["Roasters", "About", "Submit a shop"]);
+  // Escape closes it and returns focus to the button.
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+  await expect(menu).toBeFocused();
+
+  // Following a link closes it.
+  await menu.click();
+  await panel.getByRole("link", { name: "About" }).click();
+  await expect(page.getByRole("heading", { name: "About", level: 1 })).toBeVisible();
+  await expect(panel).toHaveCount(0);
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+});
+
 test("P4: a hidden shop shows the not-found page", async ({ page }) => {
   await open(page, "/shops/sample-closed-cafe");
   await expect(page.getByRole("heading", { name: "This page isn't here" })).toBeVisible();
@@ -157,6 +184,16 @@ test("P6: a submission is checked, sent and lands in the queue", async ({ page }
 test.describe("on a wide screen", () => {
   test.use({ viewport: { width: 1280, height: 900 }, isMobile: false, hasTouch: false });
 
+  test("the header links sit in a row, with no menu button", async ({ page }) => {
+    await open(page, "/");
+    const header = page.getByRole("banner");
+    await expect(header.getByRole("button", { name: "Menu" })).toBeHidden();
+    await header.getByRole("link", { name: "About" }).click();
+    await expect(page.getByRole("heading", { name: "About", level: 1 })).toBeVisible();
+    await expect(header.getByRole("link", { name: "Roasters" })).toBeVisible();
+    await expect(header.getByRole("link", { name: "Submit a shop" })).toBeVisible();
+  });
+
   test("filters sit behind a Filters button, with the areas beside it", async ({ page }) => {
     await open(page, "/");
     const button = page.getByRole("button", { name: /^Filters/ });
@@ -170,13 +207,13 @@ test.describe("on a wide screen", () => {
     const panel = page.locator("#filters-panel");
     await panel.getByRole("group", { name: "Roaster or brewer" }).getByRole("button", { name: "Roaster and brewer" }).click();
     await expect(page).toHaveURL(/type=both/);
-    for (const card of await page.getByRole("article").all()) await expect(card.locator(".ca-tag").first()).toHaveText("Roaster");
+    for (const card of await page.getByRole("article").all()) await expect(card.getByRole("img", { name: "Roaster" })).toBeVisible();
 
     // Geisha is one chip: on or off.
     await panel.getByRole("group", { name: "Geisha" }).getByRole("button", { name: "Geisha beans" }).click();
     await expect(page).toHaveURL(/type=both&geisha=1/);
     await expect(page.getByRole("article").first()).toBeVisible();
-    for (const card of await page.getByRole("article").all()) await expect(card.locator(".ca-tag", { hasText: "Geisha" })).toBeVisible();
+    for (const card of await page.getByRole("article").all()) await expect(card.getByRole("img", { name: "Geisha beans" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Remove filter Geisha beans" })).toBeVisible();
     // Area is in the row, not repeated in the panel.
     await expect(panel.getByRole("group", { name: "Area" })).toHaveCount(0);

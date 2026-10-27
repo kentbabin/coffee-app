@@ -164,12 +164,16 @@
   box-sizing: border-box;
 }
 .ca-card:hover { border-color: var(--border-strong); }
-.ca-card__head { display: flex; flex-direction: column; gap: var(--space-2); }
+.ca-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.ca-card__title { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .ca-card__name { margin: 0; font: 500 22px/28px var(--font-display); }
 .ca-card__link { color: inherit; text-decoration: none; }
 .ca-card__link::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius-md); }
 .ca-card__area { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
-.ca-card__tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* Roaster and Geisha marks: quiet icons beside the name, centred on its first line. */
+.ca-card__marks { display: flex; flex: none; gap: var(--space-2); padding-top: 5px; color: var(--ink-muted); }
+/* Above the card link, so the title tooltip shows on hover. */
+.ca-mark { position: relative; z-index: 1; display: inline-flex; }
 .ca-card__desc { margin: 0; font: 400 15px/22px var(--font-sans); color: var(--ink); }
 /* The Maps link and votes sit at the bottom, so cards in a grid row line up. */
 .ca-card__foot {
@@ -204,21 +208,6 @@
 .ca-share__status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .ca-card__vote { margin-left: auto; }
 .ca-card .ca-vote { position: relative; z-index: 1; }
-
-/* Tag: a high-contrast marker on a card, such as "Roaster". */
-.ca-tag {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--surface);
-  font: 600 12px/1 var(--font-sans);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
 
 /* Status tag */
 .ca-status {
